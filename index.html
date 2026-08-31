@@ -874,13 +874,13 @@ function bindEvents() {
   } catch (e) { /* ignore */ }
   syncThemeUi();
   bindEvents();
+  updatePeakStatus();
   const cached = loadCache();
   if (cached && validateRows(cached.rows)) {
     applyData(cached.rows, "本地缓存", cached.fetchedAt || "", false, false);
   } else {
     applyData(SNAPSHOT.rows, "内置快照", SNAPSHOT.date, false, false);
   }
-  updatePeakStatus();
   setInterval(updatePeakStatus, 30000);
   fetchLive();
 })();
