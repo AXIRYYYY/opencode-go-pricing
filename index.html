@@ -93,6 +93,15 @@
   .dot{width:8px;height:8px;border-radius:50%;flex:none;background:var(--muted)}
   .dot.ok{background:var(--ok);box-shadow:0 0 8px var(--ok)}
   .dot.warn{background:var(--warn);box-shadow:0 0 8px var(--warn)}
+  #peak-next{margin-left:2px;font-size:12px}
+  .live-tag{
+    display:inline-flex;align-items:center;gap:5px;margin-left:7px;vertical-align:1px;
+    font-size:11.5px;font-weight:600;color:var(--text);
+    border:1px solid var(--border-strong);border-radius:999px;padding:2px 9px;
+    background:var(--card);
+  }
+  .live-tag i{width:6px;height:6px;border-radius:50%;background:var(--ok);animation:pulse 1.6s ease infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 
   .btn{
     display:inline-flex;align-items:center;gap:7px;
@@ -262,6 +271,7 @@
     </div>
     <div class="hactions">
       <span class="status" id="status" title="数据状态"><span class="dot" id="status-dot"></span><span id="status-text">加载中…</span></span>
+      <span class="status" id="peak-pill" title="DeepSeek 计费时段"><span class="dot" id="peak-dot"></span><span id="peak-text">…</span><span class="muted" id="peak-next"></span></span>
       <button class="btn primary" id="refresh">
         <svg viewBox="0 0 24 24"><path d="M21.5 2v6h-6"/><path d="M2.5 22v-6h6"/><path d="M2 12a10 10 0 0 1 17.2-7L21.5 8"/><path d="M22 12a10 10 0 0 1-17.2 7L2.5 16"/></svg>
         刷新数据
@@ -317,7 +327,7 @@
   <footer>
     <ul>
       <li>价格单位为美元 / 每 1M tokens；「—」表示该模型不收取该项费用。</li>
-      <li>DeepSeek 系列高峰时段为周一至周五 01:00–04:00 与 06:00–10:00 UTC，其余时段（含周末）均为低峰价。</li>
+      <li>DeepSeek 系列高峰时段为周一至周五 01:00–04:00 与 06:00–10:00 UTC（北京时间 09:00–12:00、14:00–18:00），其余时段（含周末）均为低峰价；顶部徽章实时显示当前生效档与切换倒计时。</li>
       <li>Muse Spark 1.2 Contributor 仅限部分地区使用，以允许使用数据训练模型换取大幅折扣价。</li>
     </ul>
     <div class="src">
@@ -467,6 +477,41 @@ function validateRows(rows) {
 function dataKey(rows) {
   return JSON.stringify(rows.map(r => [r.name, r.tier, r.input, r.output, r.cacheRead, r.cacheWrite, r.allowance]));
 }
+
+function tierLabel(t) {
+  if (!t) return "";
+  const s = String(t);
+  if (/off-peak/i.test(s)) return "低峰";
+  if (/peak/i.test(s)) return "高峰";
+  return s;
+}
+
+function isDeepSeekPeak(d) {
+  const day = d.getUTCDay();
+  if (day === 0 || day === 6) return false;
+  const h = d.getUTCHours() + d.getUTCMinutes() / 60;
+  return (h >= 1 && h < 4) || (h >= 6 && h < 10);
+}
+
+function nextDeepSeekTransition(d) {
+  for (let i = 0; i < 9; i++) {
+    const day = new Date(d.getTime() + i * 86400000);
+    if (day.getUTCDay() === 0 || day.getUTCDay() === 6) continue;
+    for (const h of [1, 4, 6, 10]) {
+      const t = new Date(Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate(), h, 0, 0));
+      if (t > d) return t;
+    }
+  }
+  return null;
+}
+
+function fmtCountdown(ms) {
+  const mins = Math.max(0, Math.ceil(ms / 60000));
+  const dd = Math.floor(mins / 1440), h = Math.floor((mins % 1440) / 60), m = mins % 60;
+  if (dd > 0) return dd + "天" + (h > 0 ? h + "小时" : "") + "后切换";
+  if (h > 0) return h + "小时" + (m > 0 ? m + "分" : "") + "后切换";
+  return m + "分钟后切换";
+}
 /*__PARSE_END__*/
 
 const SNAPSHOT_RAW = [
@@ -525,6 +570,7 @@ const state = {
   sourceLabel: "",
   fetchedAt: "",
   online: false,
+  peak: undefined,
   sortKey: "input",
   sortDir: 1,
   query: "",
@@ -571,6 +617,23 @@ function timeStr(iso) {
   try {
     return new Date(iso).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
   } catch (e) { return ""; }
+}
+
+function updatePeakStatus() {
+  const now = new Date();
+  const peak = isDeepSeekPeak(now);
+  const next = nextDeepSeekTransition(now);
+  const pill = $("#peak-pill");
+  if (pill) {
+    $("#peak-dot").className = "dot " + (peak ? "warn" : "ok");
+    $("#peak-text").textContent = peak ? "DeepSeek 高峰价" : "DeepSeek 低峰价";
+    $("#peak-next").textContent = next ? "· " + fmtCountdown(next - now) : "";
+    pill.title = (peak ? "高峰价生效中" : "低峰价生效中")
+      + "。高峰时段为 UTC 周一至周五 01:00–04:00、06:00–10:00（北京时间 09:00–12:00、14:00–18:00），其余时段（含周末）均为低峰价。";
+  }
+  const changed = state.peak !== undefined && state.peak !== peak;
+  state.peak = peak;
+  if (changed && state.rows.length) renderTable();
 }
 
 function setStatus(label, when, online) {
@@ -633,15 +696,18 @@ function visibleRows() {
   const q = state.query;
   return state.rows
     .filter(r => !state.off.has(r.series))
-    .filter(r => !q || (r.name + " " + (r.tier || "") + " " + r.series).toLowerCase().includes(q))
+    .filter(r => !q || (r.name + " " + (r.tier || "") + " " + tierLabel(r.tier) + " " + r.series).toLowerCase().includes(q))
     .sort((a, b) => cmp(a, b, state.sortKey, state.sortDir));
 }
 
 function rowHtml(r, i) {
   const c = colorOf(r.series);
-  const tier = r.tier
-    ? '<span class="badge ' + tierClass(r.tier) + '">' + esc(r.tier) + "</span>"
-    : '<span class="muted">—</span>';
+  const isLiveTier = r.series === "DeepSeek" && r.tier && state.peak !== undefined
+    && (state.peak ? (/peak/i.test(r.tier) && !/off-peak/i.test(r.tier)) : /off-peak/i.test(r.tier));
+  const tier = (r.tier
+    ? '<span class="badge ' + tierClass(r.tier) + '">' + esc(tierLabel(r.tier)) + "</span>"
+    : '<span class="muted">—</span>')
+    + (isLiveTier ? '<span class="live-tag"><i></i>当前</span>' : "");
   const allowBar = r.allowance == null ? "" :
     '<span class="bar"><i style="width:' + Math.min(100, r.allowance / 60 * 100) + "%;background:" + tint(c, .75) + '"></i></span>';
   return '<tr style="--c:' + c + '">' +
@@ -814,6 +880,8 @@ function bindEvents() {
   } else {
     applyData(SNAPSHOT.rows, "内置快照", SNAPSHOT.date, false, false);
   }
+  updatePeakStatus();
+  setInterval(updatePeakStatus, 30000);
   fetchLive();
 })();
 </script>
