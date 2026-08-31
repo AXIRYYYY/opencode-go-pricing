@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark light">
+<title>OpenCode Go · 模型价格速查</title>
+<style>
+  :root{
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+    --mono: "Cascadia Code", "JetBrains Mono", Consolas, "Courier New", monospace;
+    --radius: 14px;
+  }
+  [data-theme="dark"]{
+    --bg:#0a0e1a;
+    --glow1:rgba(99,102,241,.16);
+    --glow2:rgba(34,211,238,.10);
+    --card:rgba(255,255,255,.035);
+    --card-solid:#0e1424;
+    --border:rgba(255,255,255,.08);
+    --border-strong:rgba(255,255,255,.14);
+    --text:#e7eaf3;
+    --muted:#8b93a8;
+    --hover:rgba(255,255,255,.035);
+    --thead-bg:rgba(13,19,38,.92);
+    --bar-track:rgba(255,255,255,.08);
+    --accent:#818cf8;
+    --ok:#34d399;
+    --warn:#fbbf24;
+    --shadow:0 8px 30px rgba(0,0,0,.35);
+  }
+  [data-theme="light"]{
+    --bg:#f2f4fa;
+    --glow1:rgba(99,102,241,.12);
+    --glow2:rgba(34,211,238,.12);
+    --card:#ffffff;
+    --card-solid:#ffffff;
+    --border:rgba(15,23,42,.10);
+    --border-strong:rgba(15,23,42,.18);
+    --text:#1b2334;
+    --muted:#5c6579;
+    --hover:rgba(15,23,42,.035);
+    --thead-bg:rgba(255,255,255,.94);
+    --bar-track:rgba(15,23,42,.08);
+    --accent:#5a63e8;
+    --ok:#0e9f6e;
+    --warn:#d97706;
+    --shadow:0 8px 30px rgba(15,23,42,.08);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:var(--font);
+    background:
+      radial-gradient(900px 480px at 12% -8%, var(--glow1), transparent 60%),
+      radial-gradient(900px 480px at 88% -12%, var(--glow2), transparent 60%),
+      var(--bg);
+    color:var(--text);
+    min-height:100vh;
+    transition:background .3s ease, color .3s ease;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:30px 22px 64px}
+
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+
+  /* ---------- header ---------- */
+  header{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:22px}
+  .brand{display:flex;align-items:center;gap:14px;min-width:0}
+  .brand-badge{
+    width:46px;height:46px;flex:none;border-radius:13px;
+    display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:19px;color:#fff;
+    background:linear-gradient(135deg,#6366f1,#22d3ee);
+    box-shadow:0 6px 20px rgba(99,102,241,.4);
+  }
+  .brand h1{margin:0;font-size:21px;letter-spacing:.2px}
+  .brand p{margin:3px 0 0;font-size:12.5px;color:var(--muted)}
+  .hactions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+
+  .status{
+    display:flex;align-items:center;gap:8px;
+    font-size:12px;color:var(--muted);
+    border:1px solid var(--border);border-radius:999px;
+    padding:6px 13px;background:var(--card);
+    max-width:320px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .status b{color:var(--text);font-weight:600}
+  .dot{width:8px;height:8px;border-radius:50%;flex:none;background:var(--muted)}
+  .dot.ok{background:var(--ok);box-shadow:0 0 8px var(--ok)}
+  .dot.warn{background:var(--warn);box-shadow:0 0 8px var(--warn)}
+
+  .btn{
+    display:inline-flex;align-items:center;gap:7px;
+    font:inherit;font-size:12.5px;color:var(--text);
+    background:var(--card);border:1px solid var(--border);
+    border-radius:10px;padding:8px 14px;cursor:pointer;
+    transition:all .18s ease;
+  }
+  .btn:hover{border-color:var(--border-strong);transform:translateY(-1px);box-shadow:var(--shadow)}
+  .btn:active{transform:translateY(0)}
+  .btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .btn.primary{background:linear-gradient(135deg,rgba(99,102,241,.22),rgba(34,211,238,.18));border-color:rgba(99,102,241,.45)}
+  .spin svg{animation:rot .9s linear infinite}
+  @keyframes rot{to{transform:rotate(360deg)}}
+
+  /* ---------- banner ---------- */
+  #banner{
+    display:none;align-items:center;gap:10px;
+    font-size:13px;color:var(--warn);
+    background:rgba(251,191,36,.09);
+    border:1px solid rgba(251,191,36,.3);
+    border-radius:11px;padding:10px 15px;margin-bottom:16px;
+  }
+  #banner.show{display:flex}
+
+  /* ---------- stats ---------- */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+  .stat{
+    background:var(--card);border:1px solid var(--border);
+    border-radius:var(--radius);padding:14px 18px;
+  }
+  .stat .v{font-family:var(--mono);font-size:22px;font-weight:700;letter-spacing:.3px}
+  .stat .l{font-size:11.5px;color:var(--muted);margin-top:4px;letter-spacing:.4px}
+
+  /* ---------- controls ---------- */
+  .controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+  .search{
+    position:relative;flex:1 1 240px;max-width:330px;
+  }
+  .search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:15px;height:15px;stroke:var(--muted);fill:none;stroke-width:2;stroke-linecap:round}
+  .search input{
+    width:100%;font:inherit;font-size:13px;color:var(--text);
+    background:var(--card);border:1px solid var(--border);
+    border-radius:10px;padding:9px 12px 9px 36px;outline:none;
+    transition:border-color .18s ease;
+  }
+  .search input:focus{border-color:var(--accent)}
+  .search input::placeholder{color:var(--muted)}
+
+  #legend{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .chip{
+    display:inline-flex;align-items:center;gap:7px;
+    font:inherit;font-size:12px;color:var(--text);
+    background:var(--card);border:1px solid var(--border);
+    border-radius:999px;padding:6px 12px;cursor:pointer;
+    transition:all .15s ease;
+  }
+  .chip:hover{border-color:var(--border-strong)}
+  .chip .cdot{width:9px;height:9px;border-radius:50%;background:var(--c,#94a3b8);flex:none}
+  .chip.off{opacity:.32}
+  .chip.all{border-color:var(--border-strong);font-weight:600}
+
+  /* ---------- table ---------- */
+  .table-card{
+    background:var(--card);border:1px solid var(--border);
+    border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);
+  }
+  .table-wrap{overflow:auto;max-height:72vh}
+  table{width:100%;border-collapse:separate;border-spacing:0;font-size:13.5px}
+  thead th{
+    position:sticky;top:0;z-index:5;
+    background:var(--thead-bg);backdrop-filter:blur(10px);
+    font-size:11px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;
+    color:var(--muted);text-align:left;
+    padding:11px 14px;border-bottom:1px solid var(--border);
+    white-space:nowrap;
+  }
+  thead th.num{text-align:right}
+  .th-btn{
+    font:inherit;color:inherit;letter-spacing:inherit;text-transform:inherit;
+    background:none;border:none;padding:0;cursor:pointer;
+    display:inline-flex;align-items:center;gap:5px;
+  }
+  .th-btn:hover{color:var(--text)}
+  th[aria-sort="ascending"] .th-btn,th[aria-sort="descending"] .th-btn{color:var(--accent)}
+  .ic{font-size:9px;line-height:1}
+  th[aria-sort="ascending"] .ic::after{content:"▲"}
+  th[aria-sort="descending"] .ic::after{content:"▼"}
+  th[data-key]:not([aria-sort]) .th-btn:hover .ic::after{content:"▲";opacity:.35}
+
+  tbody td{padding:11px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr{transition:background .15s ease}
+  tbody tr:hover{background:var(--hover)}
+  td.rank{
+    font-family:var(--mono);font-size:12px;color:var(--muted);width:34px;
+    box-shadow:inset 3px 0 0 0 var(--c,transparent);
+  }
+  td.num,th.num{font-family:var(--mono);text-align:right;font-size:13px;white-space:nowrap}
+  td.num.strong{font-weight:700;color:var(--text)}
+  .muted{color:var(--muted)}
+  td.name{font-weight:600;font-size:13.5px;white-space:nowrap}
+
+  .chip-sm{
+    display:inline-block;font-size:11.5px;font-weight:600;
+    color:var(--c);background:color-mix(in srgb,var(--c) 13%,transparent);
+    border:1px solid color-mix(in srgb,var(--c) 34%,transparent);
+    border-radius:999px;padding:3px 10px;white-space:nowrap;
+  }
+  @supports not (background: color-mix(in srgb, red 10%, blue)){
+    .chip-sm{background:var(--card);border-color:var(--border-strong)}
+  }
+  .badge{
+    display:inline-block;font-size:11px;border-radius:999px;padding:3px 9px;white-space:nowrap;
+    border:1px solid transparent;
+  }
+  .b-len{color:var(--muted);background:var(--bar-track);border-color:var(--border)}
+  .b-off{color:var(--ok);background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.32)}
+  .b-peak{color:var(--warn);background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.32)}
+
+  .allow{display:flex;align-items:center;justify-content:flex-end;gap:9px}
+  .bar{display:inline-block;width:58px;height:4px;border-radius:99px;background:var(--bar-track);overflow:hidden;flex:none}
+  .bar i{display:block;height:100%;border-radius:99px}
+
+  td.empty{text-align:center;color:var(--muted);padding:44px 0;font-size:13px}
+
+  /* ---------- footer ---------- */
+  footer{margin-top:22px;font-size:12px;color:var(--muted);line-height:1.9}
+  footer ul{margin:6px 0;padding-left:18px}
+  footer .src{margin-top:10px;display:flex;gap:14px;flex-wrap:wrap}
+
+  /* ---------- toast ---------- */
+  #toast{
+    position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(14px);
+    background:var(--card-solid);border:1px solid var(--border-strong);
+    color:var(--text);font-size:13px;border-radius:11px;padding:10px 18px;
+    box-shadow:var(--shadow);opacity:0;pointer-events:none;
+    transition:all .28s ease;z-index:99;white-space:nowrap;
+  }
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  ::-webkit-scrollbar{width:10px;height:10px}
+  ::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:99px}
+  ::-webkit-scrollbar-track{background:transparent}
+
+  @media (max-width:860px){
+    .stats{grid-template-columns:repeat(2,1fr)}
+    .col-cw{display:none}
+  }
+  @media (max-width:620px){
+    .wrap{padding:20px 14px 48px}
+    .col-cr{display:none}
+    .brand p{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="brand-badge">Go</div>
+      <div>
+        <h1>OpenCode Go · 模型价格速查</h1>
+        <p>每 1M tokens 单价与每月使用额度 · 从便宜到贵 · 每次打开自动同步官方最新数据</p>
+      </div>
+    </div>
+    <div class="hactions">
+      <span class="status" id="status" title="数据状态"><span class="dot" id="status-dot"></span><span id="status-text">加载中…</span></span>
+      <button class="btn primary" id="refresh">
+        <svg viewBox="0 0 24 24"><path d="M21.5 2v6h-6"/><path d="M2.5 22v-6h6"/><path d="M2 12a10 10 0 0 1 17.2-7L21.5 8"/><path d="M22 12a10 10 0 0 1-17.2 7L2.5 16"/></svg>
+        刷新数据
+      </button>
+      <button class="btn" id="theme" title="切换主题">
+        <svg viewBox="0 0 24 24" id="theme-ic"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        <span id="theme-label">浅色</span>
+      </button>
+    </div>
+  </header>
+
+  <div id="banner">
+    <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;flex:none"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+    <span id="banner-text"></span>
+  </div>
+
+  <section class="stats">
+    <div class="stat"><div class="v" id="st-count">—</div><div class="l">价格档位</div></div>
+    <div class="stat"><div class="v" id="st-series">—</div><div class="l">模型系列</div></div>
+    <div class="stat"><div class="v" id="st-min">—</div><div class="l">最低输入价 / 1M</div></div>
+    <div class="stat"><div class="v" id="st-max">—</div><div class="l">最高输入价 / 1M</div></div>
+  </section>
+
+  <div class="controls">
+    <div class="search">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="text" id="search" placeholder="搜索模型、系列或价格档…" autocomplete="off">
+    </div>
+    <div id="legend"></div>
+  </div>
+
+  <div class="table-card">
+    <div class="table-wrap">
+      <table>
+        <thead id="thead">
+          <tr>
+            <th>#</th>
+            <th data-key="series"><button class="th-btn" data-key="series">系列<span class="ic"></span></button></th>
+            <th data-key="name"><button class="th-btn" data-key="name">模型<span class="ic"></span></button></th>
+            <th>价格档</th>
+            <th class="num" data-key="input"><button class="th-btn" data-key="input">输入 $/1M<span class="ic"></span></button></th>
+            <th class="num" data-key="output"><button class="th-btn" data-key="output">输出 $/1M<span class="ic"></span></button></th>
+            <th class="num col-cr" data-key="cacheRead"><button class="th-btn" data-key="cacheRead">缓存读取<span class="ic"></span></button></th>
+            <th class="num col-cw" data-key="cacheWrite"><button class="th-btn" data-key="cacheWrite">缓存写入<span class="ic"></span></button></th>
+            <th class="num" data-key="allowance"><button class="th-btn" data-key="allowance">每月使用额度<span class="ic"></span></button></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer>
+    <ul>
+      <li>价格单位为美元 / 每 1M tokens；「—」表示该模型不收取该项费用。</li>
+      <li>DeepSeek 系列高峰时段为周一至周五 01:00–04:00 与 06:00–10:00 UTC，其余时段（含周末）均为低峰价。</li>
+      <li>Muse Spark 1.2 Contributor 仅限部分地区使用，以允许使用数据训练模型换取大幅折扣价。</li>
+    </ul>
+    <div class="src">
+      <span>数据来源：<a href="https://opencode.ai/docs/zh-cn/go" target="_blank" rel="noopener">OpenCode Go 官方文档</a></span>
+      <span>内置快照：2026-08-30</span>
+      <span>使用额度可在 <a href="https://opencode.ai/auth" target="_blank" rel="noopener">控制台</a> 查看</span>
+    </div>
+  </footer>
+
+</div>
+<div id="toast"></div>
+
+<noscript>本页面需要启用 JavaScript 才能获取和渲染价格数据。</noscript>
+
+<script>
+'use strict';
+/*__PARSE_BEGIN__*/
+const SERIES_COLORS = {
+  "Grok": "#818cf8",
+  "GPT": "#2dd4bf",
+  "GLM": "#60a5fa",
+  "Kimi": "#c084fc",
+  "LongCat": "#fb923c",
+  "MiMo": "#f472b6",
+  "MiniMax": "#22d3ee",
+  "Muse Spark": "#facc15",
+  "Qwen": "#f87171",
+  "DeepSeek": "#34d399",
+  "Hy": "#a78bfa",
+  "其他": "#94a3b8"
+};
+const SERIES_ORDER = ["Grok","GPT","GLM","Kimi","LongCat","MiMo","MiniMax","Muse Spark","Qwen","DeepSeek","Hy","其他"];
+const SERIES_RULES = [
+  ["muse spark", "Muse Spark"],
+  ["grok", "Grok"],
+  ["gpt", "GPT"],
+  ["glm", "GLM"],
+  ["kimi", "Kimi"],
+  ["longcat", "LongCat"],
+  ["mimo", "MiMo"],
+  ["minimax", "MiniMax"],
+  ["qwen", "Qwen"],
+  ["deepseek", "DeepSeek"],
+  ["hy", "Hy"]
+];
+
+function parseUsd(cell) {
+  if (cell == null) return null;
+  const s = String(cell).replace(/\\/g, "").trim();
+  if (!s || /^[-—–]+$/.test(s)) return null;
+  const m = s.replace(/[^0-9.]/g, "");
+  if (!m) return null;
+  const v = parseFloat(m);
+  return Number.isFinite(v) ? v : null;
+}
+
+function splitModelCell(raw) {
+  let s = String(raw || "").replace(/\[([^\]]+)\]\([^)]*\)/g, "$1").trim();
+  const m = s.match(/\(([^)]*)\)/);
+  let tier = null;
+  if (m) {
+    tier = m[1].trim() || null;
+    s = s.replace(m[0], "").trim();
+  }
+  return { name: s, tier };
+}
+
+function detectSeries(name) {
+  const n = String(name || "").toLowerCase();
+  for (const [prefix, series] of SERIES_RULES) {
+    if (n.startsWith(prefix)) return series;
+  }
+  return "其他";
+}
+
+function normalizeRow(raw) {
+  const nameCell = raw[0];
+  const { name, tier } = splitModelCell(nameCell);
+  return {
+    name,
+    tier,
+    series: detectSeries(name),
+    input: parseUsd(raw[1]),
+    output: parseUsd(raw[2]),
+    cacheRead: parseUsd(raw[3]),
+    cacheWrite: parseUsd(raw[4]),
+    allowance: parseUsd(raw[5])
+  };
+}
+
+function parseMdPricingTable(md) {
+  const lines = String(md || "").split(/\r?\n/);
+  let head = -1;
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i];
+    if (l.includes("|") && l.includes("输入") && l.includes("输出") && l.includes("使用额度")) {
+      head = i;
+      break;
+    }
+  }
+  if (head === -1) return null;
+  const rows = [];
+  for (let i = head + 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line.startsWith("|")) {
+      if (rows.length) break;
+      continue;
+    }
+    const cells = line.replace(/^\|/, "").replace(/\|\s*$/, "").split("|").map(c => c.trim());
+    if (cells.length < 6) continue;
+    if (cells.every(c => /^:?-{2,}:?$/.test(c) || c === "")) continue;
+    if (!cells[1] || cells[1].includes("输入")) continue;
+    rows.push([cells[0], cells[1], cells[2], cells[3], cells[4], cells[5]]);
+  }
+  return rows.length ? rows.map(normalizeRow) : null;
+}
+
+function parseHtmlPricingTable(html) {
+  try {
+    const doc = new DOMParser().parseFromString(String(html || ""), "text/html");
+    for (const tb of doc.querySelectorAll("table")) {
+      const firstRow = tb.querySelector("tr");
+      if (!firstRow) continue;
+      const ths = [...firstRow.children].map(c => (c.textContent || "").trim());
+      if (ths.length < 6) continue;
+      if (!ths[1].includes("输入") || !ths[5].includes("使用额度")) continue;
+      const raw = [];
+      for (const tr of tb.querySelectorAll("tr")) {
+        const td = [...tr.children].map(c => (c.textContent || "").trim());
+        if (td.length < 6 || td[1].includes("输入")) continue;
+        raw.push([td[0], td[1], td[2], td[3], td[4], td[5]]);
+      }
+      if (raw.length) return raw.map(normalizeRow);
+    }
+  } catch (e) { /* fallthrough */ }
+  return null;
+}
+
+function validateRows(rows) {
+  return Array.isArray(rows)
+    && rows.length >= 10
+    && rows.every(r => r && typeof r.name === "string" && r.name.length > 0
+      && typeof r.input === "number"
+      && typeof r.allowance === "number");
+}
+
+function dataKey(rows) {
+  return JSON.stringify(rows.map(r => [r.name, r.tier, r.input, r.output, r.cacheRead, r.cacheWrite, r.allowance]));
+}
+/*__PARSE_END__*/
+
+const SNAPSHOT_RAW = [
+  ["Grok 4.6 (≤ 200K tokens)", 2.00, 6.00, 0.50, null, 15],
+  ["Grok 4.6 (> 200K tokens)", 4.00, 12.00, 1.00, null, 15],
+  ["GPT 5.6 Luna (≤ 272K tokens)", 0.20, 1.20, 0.02, 0.25, 15],
+  ["GPT 5.6 Luna (> 272K tokens)", 0.40, 1.80, 0.04, 0.50, 15],
+  ["GLM-5.3-Flash", 0.15, 0.50, 0.03, null, 15],
+  ["GLM-5.3", 1.40, 4.40, 0.26, null, 15],
+  ["GLM-5.2", 1.40, 4.40, 0.26, null, 60],
+  ["GLM-5.1", 1.40, 4.40, 0.26, null, 60],
+  ["Kimi K3", 3.00, 15.00, 0.30, null, 15],
+  ["Kimi K2.7 Code", 0.95, 4.00, 0.19, null, 60],
+  ["Kimi K2.6", 0.95, 4.00, 0.16, null, 60],
+  ["LongCat-2.0", 0.30, 1.20, 0.006, null, 60],
+  ["MiMo V2.5", 0.14, 0.28, 0.0028, null, 60],
+  ["MiMo V2.5 Pro", 0.435, 0.87, 0.003625, null, 15],
+  ["MiniMax M3", 0.30, 1.20, 0.06, null, 60],
+  ["MiniMax M2.7", 0.30, 1.20, 0.06, 0.375, 60],
+  ["MiniMax M2.5", 0.30, 1.20, 0.06, 0.375, 60],
+  ["Muse Spark 1.2 Contributor", 0.10, 0.20, 0.002, null, 60],
+  ["Qwen3.8 Max", 2.00, 6.00, 0.25, 2.50, 15],
+  ["Qwen3.8 Flash", 0.15, 0.47, 0.016, 0.20, 30],
+  ["Qwen3.7 Max", 2.50, 7.50, 0.50, 3.125, 60],
+  ["Qwen3.7 Plus (≤ 256K tokens)", 0.40, 1.60, 0.04, 0.50, 60],
+  ["Qwen3.7 Plus (> 256K tokens)", 1.20, 4.80, 0.12, 1.50, 60],
+  ["Qwen3.6 Plus (≤ 256K tokens)", 0.50, 3.00, 0.05, 0.625, 60],
+  ["Qwen3.6 Plus (> 256K tokens)", 2.00, 6.00, 0.20, 2.50, 60],
+  ["DeepSeek V4 Pro (Off-Peak)", 0.66, 1.98, 0.022, null, 15],
+  ["DeepSeek V4 Pro (Peak)", 1.32, 3.96, 0.044, null, 15],
+  ["DeepSeek V4 Flash (Off-Peak)", 0.22, 0.66, 0.007, null, 30],
+  ["DeepSeek V4 Flash (Peak)", 0.44, 1.32, 0.014, null, 30],
+  ["DeepSeek V4 Flash Vision Exp (Off-Peak)", 0.22, 0.66, 0.007, null, 15],
+  ["DeepSeek V4 Flash Vision Exp (Peak)", 0.44, 1.32, 0.014, null, 15],
+  ["Hy4 preview", 0.834, 2.501, 0.042, null, 30],
+  ["Hy3", 0.14, 0.58, 0.035, null, 60]
+];
+
+const SNAPSHOT = { date: "2026-08-30", rows: SNAPSHOT_RAW.map(normalizeRow) };
+
+const DOC_URL = "https://opencode.ai/docs/zh-cn/go";
+const MDX_URL = "https://raw.githubusercontent.com/anomalyco/opencode/dev/packages/web/src/content/docs/zh-cn/go.mdx";
+const MDX_MIRROR_URL = "https://cdn.jsdelivr.net/gh/anomalyco/opencode@dev/packages/web/src/content/docs/zh-cn/go.mdx";
+const SOURCES = [
+  { label: "GitHub 源文件", type: "mdx", url: MDX_URL },
+  { label: "jsDelivr 镜像", type: "mdx", url: MDX_MIRROR_URL },
+  { label: "文档页·代理", type: "html", url: "https://api.allorigins.win/raw?url=" + encodeURIComponent(DOC_URL) },
+  { label: "文档页·代理2", type: "html", url: "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(DOC_URL) }
+];
+
+const LS_CACHE = "opengo-pricing-v1";
+const LS_THEME = "opengo-theme";
+
+const state = {
+  rows: [],
+  sourceLabel: "",
+  fetchedAt: "",
+  online: false,
+  sortKey: "input",
+  sortDir: 1,
+  query: "",
+  off: new Set()
+};
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+function hexToRgb(hex) {
+  const h = hex.replace("#", "");
+  const n = parseInt(h.length === 3 ? h.split("").map(c => c + c).join("") : h, 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+function tint(hex, a) {
+  const [r, g, b] = hexToRgb(hex);
+  return "rgba(" + r + "," + g + "," + b + "," + a + ")";
+}
+function colorOf(series) {
+  return SERIES_COLORS[series] || "#94a3b8";
+}
+function fmtPrice(v) {
+  if (v == null) return '<span class="muted">—</span>';
+  return "$" + (Number.isInteger(v) ? v.toFixed(2) : String(v));
+}
+function tierClass(t) {
+  if (!t) return "";
+  const s = t.toLowerCase();
+  if (s.includes("off-peak")) return "b-off";
+  if (s.includes("peak")) return "b-peak";
+  return "b-len";
+}
+
+let toastTimer = null;
+function toast(msg) {
+  const el = $("#toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("show"), 2800);
+}
+
+function timeStr(iso) {
+  try {
+    return new Date(iso).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  } catch (e) { return ""; }
+}
+
+function setStatus(label, when, online) {
+  state.sourceLabel = label;
+  state.fetchedAt = when;
+  state.online = online;
+  const dot = $("#status-dot");
+  dot.className = "dot " + (online ? "ok" : "warn");
+  const srcText = online ? label : label + "（离线）";
+  const t = when ? (online ? timeStr(when) : when) : "";
+  $("#status-text").textContent = t ? srcText + " · " + t : srcText;
+}
+
+function setBanner(show, text) {
+  const b = $("#banner");
+  b.classList.toggle("show", !!show);
+  if (text) $("#banner-text").textContent = text;
+}
+
+function setRefreshing(on) {
+  const btn = $("#refresh");
+  btn.classList.toggle("spin", on);
+  btn.disabled = on;
+}
+
+function renderStats() {
+  const rows = state.rows;
+  const inputs = rows.map(r => r.input).filter(v => v != null);
+  $("#st-count").textContent = rows.length;
+  $("#st-series").textContent = new Set(rows.map(r => r.series)).size;
+  $("#st-min").textContent = inputs.length ? "$" + Math.min.apply(null, inputs) : "—";
+  $("#st-max").textContent = inputs.length ? "$" + Math.max.apply(null, inputs) : "—";
+}
+
+function presentSeries() {
+  const set = new Set(state.rows.map(r => r.series));
+  return SERIES_ORDER.filter(s => set.has(s)).concat([...set].filter(s => !SERIES_ORDER.includes(s)));
+}
+
+function renderLegend() {
+  const legend = $("#legend");
+  const html = ['<button class="chip all" data-s="*">全部</button>'];
+  for (const s of presentSeries()) {
+    const off = state.off.has(s) ? " off" : "";
+    html.push('<button class="chip' + off + '" data-s="' + esc(s) + '" style="--c:' + colorOf(s) + '"><i class="cdot"></i>' + esc(s) + "</button>");
+  }
+  legend.innerHTML = html.join("");
+}
+
+function cmp(a, b, key, dir) {
+  const va = a[key], vb = b[key];
+  if (va == null && vb == null) return 0;
+  if (va == null) return 1;
+  if (vb == null) return -1;
+  if (typeof va === "string") return va.localeCompare(vb, "zh") * dir;
+  return (va - vb) * dir;
+}
+
+function visibleRows() {
+  const q = state.query;
+  return state.rows
+    .filter(r => !state.off.has(r.series))
+    .filter(r => !q || (r.name + " " + (r.tier || "") + " " + r.series).toLowerCase().includes(q))
+    .sort((a, b) => cmp(a, b, state.sortKey, state.sortDir));
+}
+
+function rowHtml(r, i) {
+  const c = colorOf(r.series);
+  const tier = r.tier
+    ? '<span class="badge ' + tierClass(r.tier) + '">' + esc(r.tier) + "</span>"
+    : '<span class="muted">—</span>';
+  const allowBar = r.allowance == null ? "" :
+    '<span class="bar"><i style="width:' + Math.min(100, r.allowance / 60 * 100) + "%;background:" + tint(c, .75) + '"></i></span>';
+  return '<tr style="--c:' + c + '">' +
+    '<td class="rank">' + (i + 1) + "</td>" +
+    '<td><span class="chip-sm" style="--c:' + c + '">' + esc(r.series) + "</span></td>" +
+    '<td class="name">' + esc(r.name) + "</td>" +
+    "<td>" + tier + "</td>" +
+    '<td class="num strong">' + fmtPrice(r.input) + "</td>" +
+    '<td class="num">' + fmtPrice(r.output) + "</td>" +
+    '<td class="num col-cr">' + fmtPrice(r.cacheRead) + "</td>" +
+    '<td class="num col-cw">' + fmtPrice(r.cacheWrite) + "</td>" +
+    '<td class="num"><span class="allow"><span>' + (r.allowance == null ? "—" : "$" + r.allowance) + "</span>" + allowBar + "</span></td>" +
+    "</tr>";
+}
+
+function renderTable() {
+  const rows = visibleRows();
+  $("#tbody").innerHTML = rows.length
+    ? rows.map(rowHtml).join("")
+    : '<tr><td class="empty" colspan="9">没有匹配的模型，试试调整搜索或系列筛选</td></tr>';
+  document.querySelectorAll("#thead th[data-key]").forEach(th => {
+    if (th.dataset.key === state.sortKey) {
+      th.setAttribute("aria-sort", state.sortDir === 1 ? "ascending" : "descending");
+    } else {
+      th.removeAttribute("aria-sort");
+    }
+  });
+}
+
+function render() {
+  renderStats();
+  renderLegend();
+  renderTable();
+}
+
+function saveCache(rows, when) {
+  try {
+    localStorage.setItem(LS_CACHE, JSON.stringify({ v: 1, fetchedAt: when, rows }));
+  } catch (e) { /* storage unavailable */ }
+}
+
+function loadCache() {
+  try {
+    const raw = localStorage.getItem(LS_CACHE);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (!data || data.v !== 1 || !Array.isArray(data.rows)) return null;
+    return { fetchedAt: data.fetchedAt, rows: data.rows };
+  } catch (e) { return null; }
+}
+
+function applyData(rows, label, when, save, online) {
+  state.rows = rows;
+  if (save) saveCache(rows, when);
+  render();
+  setStatus(label, when, online);
+  setBanner(false);
+}
+
+function fetchText(url, ms) {
+  return new Promise((resolve, reject) => {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => {
+      ctl.abort();
+      reject(new Error("timeout"));
+    }, ms || 9000);
+    fetch(url, { signal: ctl.signal, cache: "no-store" })
+      .then(r => {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.text();
+      })
+      .then(t => {
+        clearTimeout(timer);
+        resolve(t);
+      })
+      .catch(e => {
+        clearTimeout(timer);
+        reject(e);
+      });
+  });
+}
+
+async function fetchLive() {
+  setRefreshing(true);
+  let result = null;
+  for (const src of SOURCES) {
+    try {
+      const text = await fetchText(src.url);
+      const rows = src.type === "mdx" ? parseMdPricingTable(text) : parseHtmlPricingTable(text);
+      if (validateRows(rows)) {
+        result = { rows, label: src.label };
+        break;
+      }
+    } catch (e) { /* try next source */ }
+  }
+  setRefreshing(false);
+  const stamp = new Date().toISOString();
+  if (!result) {
+    setStatus(state.sourceLabel || "内置快照", state.sourceLabel ? state.fetchedAt : SNAPSHOT.date, false);
+    setBanner(true, "无法连接数据源，当前显示「" + (state.sourceLabel || "内置快照") + "」数据，稍后可点击「刷新数据」重试。");
+    toast("自动更新失败，已保留当前数据");
+    return;
+  }
+  if (dataKey(result.rows) === dataKey(state.rows)) {
+    saveCache(state.rows, stamp);
+    setStatus(result.label, stamp, true);
+    setBanner(false);
+    toast("价格数据已是最新");
+  } else {
+    applyData(result.rows, result.label, stamp, true, true);
+    toast("已自动更新至最新价格数据");
+  }
+}
+
+function toggleTheme() {
+  const cur = document.documentElement.dataset.theme === "light" ? "dark" : "light";
+  document.documentElement.dataset.theme = cur;
+  try { localStorage.setItem(LS_THEME, cur); } catch (e) { /* ignore */ }
+  syncThemeUi();
+}
+
+function syncThemeUi() {
+  const light = document.documentElement.dataset.theme === "light";
+  $("#theme-label").textContent = light ? "深色" : "浅色";
+  $("#theme-ic").innerHTML = light
+    ? '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>'
+    : '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>';
+}
+
+function bindEvents() {
+  $("#search").addEventListener("input", e => {
+    state.query = e.target.value.trim().toLowerCase();
+    renderTable();
+  });
+  $("#thead").addEventListener("click", e => {
+    const btn = e.target.closest("button[data-key]");
+    if (!btn) return;
+    const k = btn.dataset.key;
+    if (state.sortKey === k) state.sortDir *= -1;
+    else {
+      state.sortKey = k;
+      state.sortDir = 1;
+    }
+    renderTable();
+  });
+  $("#legend").addEventListener("click", e => {
+    const chip = e.target.closest(".chip");
+    if (!chip) return;
+    const s = chip.dataset.s;
+    if (s === "*") state.off.clear();
+    else if (state.off.has(s)) state.off.delete(s);
+    else state.off.add(s);
+    renderLegend();
+    renderTable();
+  });
+  $("#refresh").addEventListener("click", fetchLive);
+  $("#theme").addEventListener("click", toggleTheme);
+}
+
+(function boot() {
+  try {
+    const saved = localStorage.getItem(LS_THEME);
+    if (saved) document.documentElement.dataset.theme = saved;
+  } catch (e) { /* ignore */ }
+  syncThemeUi();
+  bindEvents();
+  const cached = loadCache();
+  if (cached && validateRows(cached.rows)) {
+    applyData(cached.rows, "本地缓存", cached.fetchedAt || "", false, false);
+  } else {
+    applyData(SNAPSHOT.rows, "内置快照", SNAPSHOT.date, false, false);
+  }
+  fetchLive();
+})();
+</script>
+</body>
+</html>
