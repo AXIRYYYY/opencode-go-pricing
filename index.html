@@ -7,8 +7,8 @@
 <title>OpenCode Go · 模型价格速查</title>
 <style>
   :root{
-    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
-    --mono: "Cascadia Code", "JetBrains Mono", Consolas, "Courier New", monospace;
+    --font: "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", system-ui, -apple-system, sans-serif;
+    --mono: "Cascadia Mono", "Cascadia Code", Consolas, "SF Mono", Menlo, monospace;
     --radius: 14px;
   }
   [data-theme="dark"]{
@@ -20,7 +20,7 @@
     --border:rgba(255,255,255,.08);
     --border-strong:rgba(255,255,255,.14);
     --text:#e7eaf3;
-    --muted:#8b93a8;
+    --muted:#9aa3ba;
     --hover:rgba(255,255,255,.035);
     --thead-bg:rgba(13,19,38,.92);
     --bar-track:rgba(255,255,255,.08);
@@ -38,7 +38,7 @@
     --border:rgba(15,23,42,.10);
     --border-strong:rgba(15,23,42,.18);
     --text:#1b2334;
-    --muted:#5c6579;
+    --muted:#4f596e;
     --hover:rgba(15,23,42,.035);
     --thead-bg:rgba(255,255,255,.94);
     --bar-track:rgba(15,23,42,.08);
@@ -51,6 +51,10 @@
   html,body{margin:0;padding:0}
   body{
     font-family:var(--font);
+    font-size:15px;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    text-rendering:optimizeLegibility;
     background:
       radial-gradient(900px 480px at 12% -8%, var(--glow1), transparent 60%),
       radial-gradient(900px 480px at 88% -12%, var(--glow2), transparent 60%),
@@ -74,13 +78,13 @@
     background:linear-gradient(135deg,#6366f1,#22d3ee);
     box-shadow:0 6px 20px rgba(99,102,241,.4);
   }
-  .brand h1{margin:0;font-size:21px;letter-spacing:.2px}
-  .brand p{margin:3px 0 0;font-size:12.5px;color:var(--muted)}
+  .brand h1{margin:0;font-size:23px}
+  .brand p{margin:4px 0 0;font-size:13.5px;color:var(--muted)}
   .hactions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 
   .status{
     display:flex;align-items:center;gap:8px;
-    font-size:12px;color:var(--muted);
+    font-size:13px;color:var(--muted);
     border:1px solid var(--border);border-radius:999px;
     padding:6px 13px;background:var(--card);
     max-width:320px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
@@ -92,7 +96,7 @@
 
   .btn{
     display:inline-flex;align-items:center;gap:7px;
-    font:inherit;font-size:12.5px;color:var(--text);
+    font:inherit;font-size:13.5px;color:var(--text);
     background:var(--card);border:1px solid var(--border);
     border-radius:10px;padding:8px 14px;cursor:pointer;
     transition:all .18s ease;
@@ -120,8 +124,8 @@
     background:var(--card);border:1px solid var(--border);
     border-radius:var(--radius);padding:14px 18px;
   }
-  .stat .v{font-family:var(--mono);font-size:22px;font-weight:700;letter-spacing:.3px}
-  .stat .l{font-size:11.5px;color:var(--muted);margin-top:4px;letter-spacing:.4px}
+  .stat .v{font-family:var(--mono);font-size:26px;font-weight:700}
+  .stat .l{font-size:13px;color:var(--muted);margin-top:5px}
 
   /* ---------- controls ---------- */
   .controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
@@ -130,7 +134,7 @@
   }
   .search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:15px;height:15px;stroke:var(--muted);fill:none;stroke-width:2;stroke-linecap:round}
   .search input{
-    width:100%;font:inherit;font-size:13px;color:var(--text);
+    width:100%;font:inherit;font-size:14.5px;color:var(--text);
     background:var(--card);border:1px solid var(--border);
     border-radius:10px;padding:9px 12px 9px 36px;outline:none;
     transition:border-color .18s ease;
@@ -141,13 +145,13 @@
   #legend{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
   .chip{
     display:inline-flex;align-items:center;gap:7px;
-    font:inherit;font-size:12px;color:var(--text);
+    font:inherit;font-size:13.5px;color:var(--text);
     background:var(--card);border:1px solid var(--border);
-    border-radius:999px;padding:6px 12px;cursor:pointer;
+    border-radius:999px;padding:7px 13px;cursor:pointer;
     transition:all .15s ease;
   }
   .chip:hover{border-color:var(--border-strong)}
-  .chip .cdot{width:9px;height:9px;border-radius:50%;background:var(--c,#94a3b8);flex:none}
+  .chip .cdot{width:10px;height:10px;border-radius:50%;background:var(--c,#94a3b8);flex:none}
   .chip.off{opacity:.32}
   .chip.all{border-color:var(--border-strong);font-weight:600}
 
@@ -157,13 +161,13 @@
     border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);
   }
   .table-wrap{overflow:auto;max-height:72vh}
-  table{width:100%;border-collapse:separate;border-spacing:0;font-size:13.5px}
+  table{width:100%;border-collapse:separate;border-spacing:0;font-size:14.5px}
   thead th{
     position:sticky;top:0;z-index:5;
     background:var(--thead-bg);backdrop-filter:blur(10px);
-    font-size:11px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;
+    font-size:12.5px;font-weight:600;letter-spacing:.3px;text-transform:uppercase;
     color:var(--muted);text-align:left;
-    padding:11px 14px;border-bottom:1px solid var(--border);
+    padding:12px 14px;border-bottom:1px solid var(--border);
     white-space:nowrap;
   }
   thead th.num{text-align:right}
@@ -179,21 +183,21 @@
   th[aria-sort="descending"] .ic::after{content:"▼"}
   th[data-key]:not([aria-sort]) .th-btn:hover .ic::after{content:"▲";opacity:.35}
 
-  tbody td{padding:11px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
+  tbody td{padding:12px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
   tbody tr:last-child td{border-bottom:none}
   tbody tr{transition:background .15s ease}
   tbody tr:hover{background:var(--hover)}
   td.rank{
-    font-family:var(--mono);font-size:12px;color:var(--muted);width:34px;
+    font-family:var(--mono);font-size:13px;color:var(--muted);width:40px;
     box-shadow:inset 3px 0 0 0 var(--c,transparent);
   }
-  td.num,th.num{font-family:var(--mono);text-align:right;font-size:13px;white-space:nowrap}
+  td.num,th.num{font-family:var(--mono);text-align:right;font-size:14px;white-space:nowrap}
   td.num.strong{font-weight:700;color:var(--text)}
   .muted{color:var(--muted)}
-  td.name{font-weight:600;font-size:13.5px;white-space:nowrap}
+  td.name{font-weight:600;font-size:14.5px;white-space:nowrap}
 
   .chip-sm{
-    display:inline-block;font-size:11.5px;font-weight:600;
+    display:inline-block;font-size:13px;font-weight:600;
     color:var(--c);background:color-mix(in srgb,var(--c) 13%,transparent);
     border:1px solid color-mix(in srgb,var(--c) 34%,transparent);
     border-radius:999px;padding:3px 10px;white-space:nowrap;
@@ -202,7 +206,7 @@
     .chip-sm{background:var(--card);border-color:var(--border-strong)}
   }
   .badge{
-    display:inline-block;font-size:11px;border-radius:999px;padding:3px 9px;white-space:nowrap;
+    display:inline-block;font-size:12.5px;border-radius:999px;padding:3px 10px;white-space:nowrap;
     border:1px solid transparent;
   }
   .b-len{color:var(--muted);background:var(--bar-track);border-color:var(--border)}
@@ -213,10 +217,10 @@
   .bar{display:inline-block;width:58px;height:4px;border-radius:99px;background:var(--bar-track);overflow:hidden;flex:none}
   .bar i{display:block;height:100%;border-radius:99px}
 
-  td.empty{text-align:center;color:var(--muted);padding:44px 0;font-size:13px}
+  td.empty{text-align:center;color:var(--muted);padding:44px 0;font-size:14px}
 
   /* ---------- footer ---------- */
-  footer{margin-top:22px;font-size:12px;color:var(--muted);line-height:1.9}
+  footer{margin-top:22px;font-size:13px;color:var(--muted);line-height:2}
   footer ul{margin:6px 0;padding-left:18px}
   footer .src{margin-top:10px;display:flex;gap:14px;flex-wrap:wrap}
 
@@ -224,7 +228,7 @@
   #toast{
     position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(14px);
     background:var(--card-solid);border:1px solid var(--border-strong);
-    color:var(--text);font-size:13px;border-radius:11px;padding:10px 18px;
+    color:var(--text);font-size:14px;border-radius:11px;padding:11px 19px;
     box-shadow:var(--shadow);opacity:0;pointer-events:none;
     transition:all .28s ease;z-index:99;white-space:nowrap;
   }
