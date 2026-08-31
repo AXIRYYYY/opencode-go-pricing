@@ -100,8 +100,8 @@
     border:1px solid var(--border-strong);border-radius:999px;padding:2px 9px;
     background:var(--card);
   }
-  .live-tag i{width:6px;height:6px;border-radius:50%;background:var(--ok);animation:pulse 1.6s ease infinite}
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  .live-tag i{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 7px var(--ok);animation:pulse 1.6s ease infinite}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
 
   .btn{
     display:inline-flex;align-items:center;gap:7px;
@@ -625,7 +625,7 @@ function updatePeakStatus() {
   const next = nextDeepSeekTransition(now);
   const pill = $("#peak-pill");
   if (pill) {
-    $("#peak-dot").className = "dot " + (peak ? "warn" : "ok");
+    $("#peak-dot").className = "dot " + (peak ? "warn" : "ok") + " pulse";
     $("#peak-text").textContent = peak ? "DeepSeek 高峰价" : "DeepSeek 低峰价";
     $("#peak-next").textContent = next ? "· " + fmtCountdown(next - now) : "";
     pill.title = (peak ? "高峰价生效中" : "低峰价生效中")
