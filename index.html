@@ -63,7 +63,7 @@
     min-height:100vh;
     transition:background .3s ease, color .3s ease;
   }
-  .wrap{max-width:1180px;margin:0 auto;padding:30px 22px 64px}
+  .wrap{max-width:none;width:100%;margin:0 auto;padding:30px clamp(14px,2.5vw,34px) 64px}
 
   a{color:var(--accent);text-decoration:none}
   a:hover{text-decoration:underline}
@@ -152,6 +152,9 @@
   .search input::placeholder{color:var(--muted)}
 
   #legend{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  #privacy-legend{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  #privacy-legend .sep{width:1px;height:20px;background:var(--border-strong);margin:0 2px}
+  #privacy-legend .chip.on{border-color:var(--accent);font-weight:600;box-shadow:0 0 0 1px var(--accent) inset}
   .chip{
     display:inline-flex;align-items:center;gap:7px;
     font:inherit;font-size:13.5px;color:var(--text);
@@ -200,8 +203,9 @@
     font-family:var(--mono);font-size:13px;color:var(--muted);width:40px;
     box-shadow:inset 3px 0 0 0 var(--c,transparent);
   }
-  td.num,th.num{font-family:var(--mono);text-align:right;font-size:14px;white-space:nowrap}
+  td.num,th.num{font-family:var(--mono);text-align:right;font-size:14px;white-space:nowrap;font-variant-numeric:tabular-nums}
   td.num.strong{font-weight:700;color:var(--text)}
+  .padzero{opacity:0;user-select:none}
   .muted{color:var(--muted)}
   td.name{font-weight:600;font-size:14.5px;white-space:nowrap}
 
@@ -220,7 +224,14 @@
   }
   .b-len{color:var(--muted);background:var(--bar-track);border-color:var(--border)}
   .b-off{color:var(--ok);background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.32)}
-  .b-peak{color:var(--warn);background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.32)}
+  .b-peak{color:var(--warn);background:rgba(251,191,36,.1);border-color:rgba(251,211,36,.32)}
+  .b-train{color:#f87171;background:rgba(248,113,113,.1);border-color:rgba(248,113,113,.4)}
+  .b-keep{color:var(--warn);background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.32)}
+  .b-zero{color:var(--muted);background:var(--bar-track);border-color:var(--border)}
+  tr.is-train{box-shadow:inset 3px 0 0 0 rgba(248,113,113,.7)}
+  .seg{display:inline-flex;background:var(--card);border:1px solid var(--border);border-radius:999px;padding:3px;gap:2px}
+  .seg button{font:inherit;font-size:13px;color:var(--muted);background:none;border:none;border-radius:999px;padding:6px 13px;cursor:pointer;white-space:nowrap}
+  .seg button.on{background:linear-gradient(135deg,rgba(99,102,241,.28),rgba(34,211,238,.22));color:var(--text);font-weight:600}
 
   .allow{display:flex;align-items:center;justify-content:flex-end;gap:9px}
   .bar{display:inline-block;width:58px;height:4px;border-radius:99px;background:var(--bar-track);overflow:hidden;flex:none}
@@ -272,6 +283,10 @@
     <div class="hactions">
       <span class="status" id="status" title="数据状态"><span class="dot" id="status-dot"></span><span id="status-text">加载中…</span></span>
       <span class="status" id="peak-pill" title="DeepSeek 计费时段"><span class="dot" id="peak-dot"></span><span id="peak-text">…</span><span class="muted" id="peak-next"></span></span>
+      <a class="btn" href="usage.html" title="查看用量">
+        <svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15v3M12 10v8M17 6v12"/></svg>
+        用量
+      </a>
       <button class="btn primary" id="refresh">
         <svg viewBox="0 0 24 24"><path d="M21.5 2v6h-6"/><path d="M2.5 22v-6h6"/><path d="M2 12a10 10 0 0 1 17.2-7L21.5 8"/><path d="M22 12a10 10 0 0 1-17.2 7L2.5 16"/></svg>
         刷新数据
@@ -301,6 +316,11 @@
       <input type="text" id="search" placeholder="搜索模型、系列或价格档…" autocomplete="off">
     </div>
     <div id="legend"></div>
+    <div id="privacy-legend" title="按隐私筛选"></div>
+    <div class="seg" id="price-mode" title="切换价格显示：单价 vs 单价÷每月额度">
+      <button data-m="price" class="on">$/1M</button>
+      <button data-m="ratio">$/1M ÷额度</button>
+    </div>
   </div>
 
   <div class="table-card">
@@ -317,6 +337,7 @@
             <th class="num col-cr" data-key="cacheRead"><button class="th-btn" data-key="cacheRead">缓存读取<span class="ic"></span></button></th>
             <th class="num col-cw" data-key="cacheWrite"><button class="th-btn" data-key="cacheWrite">缓存写入<span class="ic"></span></button></th>
             <th class="num" data-key="allowance"><button class="th-btn" data-key="allowance">每月使用额度<span class="ic"></span></button></th>
+            <th data-key="privacy"><button class="th-btn" data-key="privacy">隐私<span class="ic"></span></button></th>
           </tr>
         </thead>
         <tbody id="tbody"></tbody>
@@ -328,11 +349,12 @@
     <ul>
       <li>价格单位为美元 / 每 1M tokens；「—」表示该模型不收取该项费用。</li>
       <li>DeepSeek 系列高峰时段为周一至周五 01:00–04:00 与 06:00–10:00 UTC（北京时间 09:00–12:00、14:00–18:00），其余时段（含周末）均为低峰价；顶部徽章实时显示当前生效档与切换倒计时。</li>
-      <li>Muse Spark 1.2 Contributor 仅限部分地区使用，以允许使用数据训练模型换取大幅折扣价。</li>
+      <li id="privacy-note-head" style="display:none">隐私（与官方同步<span id="privacy-note-date"></span>）：</li>
     </ul>
+    <ul id="privacy-notes" style="margin-top:0"></ul>
     <div class="src">
       <span>数据来源：<a href="https://opencode.ai/docs/zh-cn/go" target="_blank" rel="noopener">OpenCode Go 官方文档</a></span>
-      <span>内置快照：2026-08-30</span>
+      <span>内置快照：<span id="snapshot-date">2026-09-06</span></span>
       <span>使用额度可在 <a href="https://opencode.ai/auth" target="_blank" rel="noopener">控制台</a> 查看</span>
     </div>
   </footer>
@@ -423,7 +445,7 @@ function parseMdPricingTable(md) {
   let head = -1;
   for (let i = 0; i < lines.length; i++) {
     const l = lines[i];
-    if (l.includes("|") && l.includes("输入") && l.includes("输出") && l.includes("使用额度")) {
+    if (l.includes("|") && l.includes("输入") && l.includes("输出") && (l.includes("每月限制") || l.includes("使用额度"))) {
       head = i;
       break;
     }
@@ -453,7 +475,7 @@ function parseHtmlPricingTable(html) {
       if (!firstRow) continue;
       const ths = [...firstRow.children].map(c => (c.textContent || "").trim());
       if (ths.length < 6) continue;
-      if (!ths[1].includes("输入") || !ths[5].includes("使用额度")) continue;
+      if (!ths[1].includes("输入") || !(ths[5].includes("每月限制") || ths[5].includes("使用额度"))) continue;
       const raw = [];
       for (const tr of tb.querySelectorAll("tr")) {
         const td = [...tr.children].map(c => (c.textContent || "").trim());
@@ -474,8 +496,105 @@ function validateRows(rows) {
       && typeof r.allowance === "number");
 }
 
+function normPrivacyName(s) {
+  return String(s || "").replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/\([^)]*\)/g, "").replace(/[_‐‑‒–—―]/g, "-")
+    .replace(/\s+/g, "").replace(/-/g, "").toLowerCase();
+}
+
+function parsePrivacySection(md) {
+  const text = String(md || "");
+  const lines = text.split(/\r?\n/);
+  let head = -1;
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i];
+    if (l.includes("|") && l.includes("模型训练") && l.includes("数据留存")) { head = i; break; }
+  }
+  if (head === -1) return null;
+  const table = [];
+  for (let i = head + 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line.startsWith("|")) { if (table.length) break; continue; }
+    const cells = line.replace(/^\|/, "").replace(/\|\s*$/, "").split("|").map(c => c.trim());
+    if (cells.length < 3) continue;
+    if (cells.every(c => /^:?-{2,}:?$/.test(c) || c === "")) continue;
+    if (cells[1].includes("模型训练")) continue;
+    table.push({ model: cells[0], train: cells[1], retain: cells[2] });
+  }
+  if (!table.length) return null;
+  const notes = [];
+  let inNotes = false;
+  for (let i = head + 1; i < lines.length; i++) {
+    const line = lines[i];
+    if (/^##\s+目标/.test(line.trim())) break;
+    if (!inNotes) {
+      if (/^\s*-\s*\*\*/.test(line) && table.length && line.includes("**") && !line.includes("|")) inNotes = true;
+      else continue;
+    }
+    const m = line.match(/^\s*-\s*\*\*(.+?):\*\*\s*(.*)$/);
+    if (m) notes.push({ model: m[1].trim(), text: m[2].trim() });
+    else if (/^\s*-\s/.test(line)) break;
+  }
+  return { table, notes: notes.length ? notes : null };
+}
+
+function parseHtmlPrivacySection(html) {
+  try {
+    const doc = new DOMParser().parseFromString(String(html || ""), "text/html");
+    for (const tb of doc.querySelectorAll("table")) {
+      const firstRow = tb.querySelector("tr");
+      if (!firstRow) continue;
+      const ths = [...firstRow.children].map(c => (c.textContent || "").trim());
+      if (ths.length < 3 || !ths.join("").includes("模型训练")) continue;
+      const table = [];
+      for (const tr of tb.querySelectorAll("tr")) {
+        const td = [...tr.children].map(c => (c.textContent || "").trim());
+        if (td.length < 3 || td[1].includes("模型训练")) continue;
+        table.push({ model: td[0], train: td[1], retain: td[2] });
+      }
+      if (table.length) {
+        const notes = [];
+        let el = tb.parentElement;
+        const scope = el ? el.innerHTML : "";
+        const re = /<li[^>]*>\s*<strong>([^<:]+):?<\/strong>\s*([\s\S]*?)<\/li>/g;
+        let m;
+        while ((m = re.exec(scope)) && notes.length < 12) {
+          const div = document.createElement("div");
+          div.innerHTML = m[2];
+          notes.push({ model: m[1].trim(), text: div.textContent.trim() });
+        }
+        return { table, notes: notes.length ? notes : null };
+      }
+    }
+  } catch (e) { /* fallthrough */ }
+  return null;
+}
+
+function mergePrivacy(rows, priv) {
+  const map = new Map();
+  if (priv && Array.isArray(priv.table)) {
+    for (const p of priv.table) map.set(normPrivacyName(p.model), p);
+  }
+  for (const r of rows) {
+    const hit = map.get(normPrivacyName(r.name))
+      || map.get(normPrivacyName(r.name.replace(/spark\s*1\.\d/i, "spark")));
+    const train = hit ? String(hit.train || "").trim() : "";
+    const retain = hit ? String(hit.retain || "").trim() : "";
+    r.training = /^(是|yes|y)\b/i.test(train) || train === "是";
+    r.retain = retain || "";
+    r.retainDays = /^\d+/.test(retain) ? parseInt(retain, 10) : (retain === "0 天" || retain === "0天" ? 0 : null);
+  }
+  return rows;
+}
+
+function privacyRank(r) {
+  if (r.training) return 0;
+  if (r.retain && r.retain !== "0 天" && r.retain !== "0天") return 1;
+  return 2;
+}
+
 function dataKey(rows) {
-  return JSON.stringify(rows.map(r => [r.name, r.tier, r.input, r.output, r.cacheRead, r.cacheWrite, r.allowance]));
+  return JSON.stringify(rows.map(r => [r.name, r.tier, r.input, r.output, r.cacheRead, r.cacheWrite, r.allowance, r.training ? 1 : 0, r.retain || ""]));
 }
 
 function tierLabel(t) {
@@ -532,10 +651,11 @@ const SNAPSHOT_RAW = [
   ["MiniMax M3", 0.30, 1.20, 0.06, null, 60],
   ["MiniMax M2.7", 0.30, 1.20, 0.06, 0.375, 60],
   ["MiniMax M2.5", 0.30, 1.20, 0.06, 0.375, 60],
+  ["Muse Spark 1.3 Contributor", 0.10, 0.20, 0.002, null, 60],
   ["Muse Spark 1.2 Contributor", 0.10, 0.20, 0.002, null, 60],
   ["Qwen3.8 Max", 2.00, 6.00, 0.25, 2.50, 15],
   ["Qwen3.8 Flash", 0.15, 0.47, 0.016, 0.20, 30],
-  ["Qwen3.7 Max", 2.50, 7.50, 0.50, 3.125, 60],
+  ["Qwen3.7 Max", 2.50, 7.50, 0.50, 3.125, 30],
   ["Qwen3.7 Plus (≤ 256K tokens)", 0.40, 1.60, 0.04, 0.50, 60],
   ["Qwen3.7 Plus (> 256K tokens)", 1.20, 4.80, 0.12, 1.50, 60],
   ["Qwen3.6 Plus (≤ 256K tokens)", 0.50, 3.00, 0.05, 0.625, 60],
@@ -547,26 +667,66 @@ const SNAPSHOT_RAW = [
   ["DeepSeek V4 Flash Vision Exp (Off-Peak)", 0.22, 0.66, 0.007, null, 15],
   ["DeepSeek V4 Flash Vision Exp (Peak)", 0.44, 1.32, 0.014, null, 15],
   ["Hy4 preview", 0.834, 2.501, 0.042, null, 30],
-  ["Hy3", 0.14, 0.58, 0.035, null, 60]
+  ["Hy3", 0.14, 0.58, 0.035, null, 60],
+  ["Omen Alpha", 0.20, 0.66, 0.04, null, 100]
 ];
 
-const SNAPSHOT = { date: "2026-08-30", rows: SNAPSHOT_RAW.map(normalizeRow) };
+const PRIVACY_SNAPSHOT_TABLE = [
+  ["Grok 4.6", "不使用", "30 天"],
+  ["GPT 5.6 Luna", "不使用", "30 天"],
+  ["GLM-5.3-Flash", "不使用", "0 天"],
+  ["GLM-5.3", "不使用", "0 天"],
+  ["GLM-5.2", "不使用", "0 天"],
+  ["GLM-5.1", "不使用", "0 天"],
+  ["Kimi K3", "不使用", "0 天"],
+  ["Kimi K2.7 Code", "不使用", "0 天"],
+  ["Kimi K2.6", "不使用", "0 天"],
+  ["LongCat-2.0", "不使用", "0 天"],
+  ["MiMo-V2.5-Pro", "不使用", "0 天"],
+  ["MiMo-V2.5", "不使用", "0 天"],
+  ["Qwen3.8 Max", "不使用", "0 天"],
+  ["Qwen3.8 Flash", "不使用", "0 天"],
+  ["Qwen3.7 Max", "不使用", "0 天"],
+  ["Qwen3.7 Plus", "不使用", "0 天"],
+  ["Qwen3.6 Plus", "不使用", "0 天"],
+  ["MiniMax M3", "不使用", "0 天"],
+  ["MiniMax M2.7", "不使用", "0 天"],
+  ["Muse Spark 1.3 Contributor", "是", "非 ZDR"],
+  ["Muse Spark 1.2 Contributor", "是", "非 ZDR"],
+  ["DeepSeek V4 Pro", "不使用", "0 天"],
+  ["DeepSeek V4 Flash", "不使用", "0 天"],
+  ["DeepSeek V4 Flash Vision Exp", "不使用", "0 天"],
+  ["Hy4 preview", "不使用", "0 天"],
+  ["Hy3", "不使用", "0 天"],
+  ["Omen Alpha", "不使用", "0 天"]
+];
+const PRIVACY_NOTES_SNAPSHOT = [
+  { model: "Grok 4.6", text: "ZDR 会禁用依赖所存储数据的重要 API 功能，包括有状态的 Responses API、Files and Collections 和 Batch API。" },
+  { model: "GPT 5.6 Luna", text: "所有 API 功能的使用都会生成滥用监控日志，并最多保留 30 天。" },
+  { model: "Muse Spark 1.3 Contributor", text: "以允许使用你的提示词和补全结果训练未来的 Meta 模型为交换，token 价格可获得大幅折扣。仅在 Meta 的地理使用政策允许的地区提供。" },
+  { model: "Muse Spark 1.2 Contributor", text: "以允许使用你的提示词和补全结果训练未来的 Meta 模型为交换，token 价格可获得大幅折扣。仅在 Meta 的地理使用政策允许的地区提供。" },
+  { model: "DeepSeek V4 Flash", text: "ZDR 协议每月续签。当前协议有效期至 2026 年 9 月 30 日。" }
+];
 
-const DOC_URL = "https://opencode.ai/docs/zh-cn/go";
+const SNAPSHOT = { date: "2026-09-06", rows: mergePrivacy(SNAPSHOT_RAW.map(normalizeRow), { table: PRIVACY_SNAPSHOT_TABLE.map(r => ({ model: r[0], train: r[1], retain: r[2] })) }) };
+
 const MDX_URL = "https://raw.githubusercontent.com/anomalyco/opencode/dev/packages/web/src/content/docs/zh-cn/go.mdx";
 const MDX_MIRROR_URL = "https://cdn.jsdelivr.net/gh/anomalyco/opencode@dev/packages/web/src/content/docs/zh-cn/go.mdx";
 const SOURCES = [
   { label: "GitHub 源文件", type: "mdx", url: MDX_URL },
   { label: "jsDelivr 镜像", type: "mdx", url: MDX_MIRROR_URL },
-  { label: "文档页·代理", type: "html", url: "https://api.allorigins.win/raw?url=" + encodeURIComponent(DOC_URL) },
-  { label: "文档页·代理2", type: "html", url: "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(DOC_URL) }
+  { label: "ghproxy 镜像", type: "mdx", url: "https://ghproxy.net/" + MDX_URL },
+  { label: "gh-proxy 镜像", type: "mdx", url: "https://gh-proxy.com/" + MDX_URL },
+  { label: "ghfast 镜像", type: "mdx", url: "https://ghfast.top/" + MDX_URL }
 ];
 
-const LS_CACHE = "opengo-pricing-v1";
+const LS_CACHE = "opengo-pricing-v2";
 const LS_THEME = "opengo-theme";
+const LS_RATIO = "opengo-ratio-mode";
 
 const state = {
   rows: [],
+  privacyNotes: [],
   sourceLabel: "",
   fetchedAt: "",
   online: false,
@@ -574,6 +734,8 @@ const state = {
   sortKey: "input",
   sortDir: 1,
   query: "",
+  ratioMode: false,
+  privacyFilter: "all",
   off: new Set()
 };
 
@@ -592,9 +754,27 @@ function tint(hex, a) {
 function colorOf(series) {
   return SERIES_COLORS[series] || "#94a3b8";
 }
-function fmtPrice(v) {
+const PRICE_FRAC = 6; // 小数部分统一占位到 6 位（不足补不可见 0），小数点纵向对齐
+function fmtPrice(v, allowance) {
   if (v == null) return '<span class="muted">—</span>';
-  return "$" + (Number.isInteger(v) ? v.toFixed(2) : String(v));
+  if (state.ratioMode) {
+    if (allowance == null || !allowance) return '<span class="muted">—</span>';
+    const q = v / allowance;
+    return '<span title="原 $' + v + " ÷ $" + allowance + '">$' + q.toFixed(PRICE_FRAC) + "</span>";
+  }
+  const s = Number.isInteger(v) ? v.toFixed(2) : String(v);
+  const dot = s.indexOf(".");
+  const fracLen = dot === -1 ? 0 : s.length - dot - 1;
+  const pad = fracLen < PRICE_FRAC ? '<span class="padzero">' + "0".repeat(PRICE_FRAC - fracLen) + "</span>" : "";
+  return "$" + s + pad;
+}
+function effVal(v, allowance) {
+  if (v == null) return null;
+  if (state.ratioMode && typeof v === "number") {
+    if (allowance == null || !allowance) return null;
+    return v / allowance;
+  }
+  return v;
 }
 function tierClass(t) {
   if (!t) return "";
@@ -661,11 +841,18 @@ function setRefreshing(on) {
 
 function renderStats() {
   const rows = state.rows;
-  const inputs = rows.map(r => r.input).filter(v => v != null);
+  const inputs = rows.map(r => effVal(r.input, r.allowance)).filter(v => v != null);
   $("#st-count").textContent = rows.length;
   $("#st-series").textContent = new Set(rows.map(r => r.series)).size;
-  $("#st-min").textContent = inputs.length ? "$" + Math.min.apply(null, inputs) : "—";
-  $("#st-max").textContent = inputs.length ? "$" + Math.max.apply(null, inputs) : "—";
+  if (!inputs.length) { $("#st-min").textContent = "—"; $("#st-max").textContent = "—"; return; }
+  const lo = Math.min.apply(null, inputs), hi = Math.max.apply(null, inputs);
+  if (state.ratioMode) {
+    $("#st-min").textContent = "$" + String(Number(lo.toPrecision(3)));
+    $("#st-max").textContent = "$" + String(Number(hi.toPrecision(3)));
+  } else {
+    $("#st-min").textContent = "$" + (Number.isInteger(lo) ? lo.toFixed(2) : String(lo));
+    $("#st-max").textContent = "$" + (Number.isInteger(hi) ? hi.toFixed(2) : String(hi));
+  }
 }
 
 function presentSeries() {
@@ -684,7 +871,15 @@ function renderLegend() {
 }
 
 function cmp(a, b, key, dir) {
-  const va = a[key], vb = b[key];
+  if (key === "privacy") return (privacyRank(a) - privacyRank(b)) * dir || a.name.localeCompare(b.name, "zh") * dir;
+  const va = effVal(a[key], a.allowance), vb = effVal(b[key], b.allowance);
+  if (key === "allowance") {
+    const xa = a.allowance, xb = b.allowance;
+    if (xa == null && xb == null) return 0;
+    if (xa == null) return 1;
+    if (xb == null) return -1;
+    return (xa - xb) * dir;
+  }
   if (va == null && vb == null) return 0;
   if (va == null) return 1;
   if (vb == null) return -1;
@@ -692,12 +887,54 @@ function cmp(a, b, key, dir) {
   return (va - vb) * dir;
 }
 
+function isRetained(r) {
+  const ret = String(r.retain || "");
+  return !!ret && !/^0\s*天/.test(ret);
+}
+
+function matchPrivacy(r) {
+  const f = state.privacyFilter;
+  if (f === "train") return !!r.training;
+  if (f === "retain") return !r.training && isRetained(r);
+  if (f === "zero") return !r.training && /^0\s*天/.test(String(r.retain || ""));
+  return true;
+}
+
+function renderPrivacyLegend() {
+  const el = $("#privacy-legend");
+  if (!el) return;
+  const rows = state.rows;
+  const nTrain = rows.filter(r => r.training).length;
+  const nRetain = rows.filter(r => !r.training && isRetained(r)).length;
+  const nZero = rows.filter(r => !r.training && /^0\s*天/.test(String(r.retain || ""))).length;
+  const opts = [
+    ["all", "隐私:全部(" + rows.length + ")", ""],
+    ["train", "⚠会训练(" + nTrain + ")", "#f87171"],
+    ["retain", "有留存(" + nRetain + ")", "#fbbf24"],
+    ["zero", "零留存(" + nZero + ")", "#94a3b8"]
+  ];
+  el.innerHTML = '<span class="sep"></span>' + opts.map(([k, label, c]) =>
+    '<button class="chip' + (state.privacyFilter === k ? " on" : "") + '" data-p="' + k + '"' +
+    (c ? ' style="--c:' + c + '"><i class="cdot"></i>' : ">") + esc(label) + "</button>"
+  ).join("");
+}
+
 function visibleRows() {
   const q = state.query;
   return state.rows
     .filter(r => !state.off.has(r.series))
-    .filter(r => !q || (r.name + " " + (r.tier || "") + " " + tierLabel(r.tier) + " " + r.series).toLowerCase().includes(q))
+    .filter(matchPrivacy)
+    .filter(r => !q || (r.name + " " + (r.tier || "") + " " + tierLabel(r.tier) + " " + r.series + " " + (r.training ? "训练" : "") + " " + (r.retain || "")).toLowerCase().includes(q))
     .sort((a, b) => cmp(a, b, state.sortKey, state.sortDir));
+}
+
+function privacyCell(r) {
+  const parts = [];
+  if (r.training) parts.push('<span class="badge b-train" title="该模型会使用你的提示词/补全训练未来模型">⚠训练</span>');
+  const ret = String(r.retain || "");
+  if (/^0\s*天/.test(ret)) parts.push('<span class="badge b-zero" title="数据留存 0 天">零留存</span>');
+  else if (ret) parts.push('<span class="badge b-keep" title="数据留存：' + esc(ret) + '">' + esc(ret) + "</span>");
+  return parts.length ? parts.join(" ") : '<span class="muted">—</span>';
 }
 
 function rowHtml(r, i) {
@@ -710,16 +947,17 @@ function rowHtml(r, i) {
     + (isLiveTier ? '<span class="live-tag"><i></i>当前</span>' : "");
   const allowBar = r.allowance == null ? "" :
     '<span class="bar"><i style="width:' + Math.min(100, r.allowance / 60 * 100) + "%;background:" + tint(c, .75) + '"></i></span>';
-  return '<tr style="--c:' + c + '">' +
+  return '<tr style="--c:' + c + '"' + (r.training ? ' class="is-train"' : "") + ">" +
     '<td class="rank">' + (i + 1) + "</td>" +
     '<td><span class="chip-sm" style="--c:' + c + '">' + esc(r.series) + "</span></td>" +
-    '<td class="name">' + esc(r.name) + "</td>" +
+    '<td class="name">' + esc(r.name) + (r.training ? " ⚠" : "") + "</td>" +
     "<td>" + tier + "</td>" +
-    '<td class="num strong">' + fmtPrice(r.input) + "</td>" +
-    '<td class="num">' + fmtPrice(r.output) + "</td>" +
-    '<td class="num col-cr">' + fmtPrice(r.cacheRead) + "</td>" +
-    '<td class="num col-cw">' + fmtPrice(r.cacheWrite) + "</td>" +
+    '<td class="num strong">' + fmtPrice(r.input, r.allowance) + "</td>" +
+    '<td class="num">' + fmtPrice(r.output, r.allowance) + "</td>" +
+    '<td class="num col-cr">' + fmtPrice(r.cacheRead, r.allowance) + "</td>" +
+    '<td class="num col-cw">' + fmtPrice(r.cacheWrite, r.allowance) + "</td>" +
     '<td class="num"><span class="allow"><span>' + (r.allowance == null ? "—" : "$" + r.allowance) + "</span>" + allowBar + "</span></td>" +
+    "<td>" + privacyCell(r) + "</td>" +
     "</tr>";
 }
 
@@ -727,7 +965,7 @@ function renderTable() {
   const rows = visibleRows();
   $("#tbody").innerHTML = rows.length
     ? rows.map(rowHtml).join("")
-    : '<tr><td class="empty" colspan="9">没有匹配的模型，试试调整搜索或系列筛选</td></tr>';
+    : '<tr><td class="empty" colspan="10">没有匹配的模型，试试调整搜索或系列筛选</td></tr>';
   document.querySelectorAll("#thead th[data-key]").forEach(th => {
     if (th.dataset.key === state.sortKey) {
       th.setAttribute("aria-sort", state.sortDir === 1 ? "ascending" : "descending");
@@ -740,12 +978,47 @@ function renderTable() {
 function render() {
   renderStats();
   renderLegend();
+  renderPrivacyLegend();
   renderTable();
+  renderPrivacyNotes();
+  syncPriceModeUi();
 }
 
-function saveCache(rows, when) {
+function renderPrivacyNotes() {
+  const ul = $("#privacy-notes");
+  const head = $("#privacy-note-head");
+  if (!ul) return;
+  const notes = state.privacyNotes && state.privacyNotes.length ? state.privacyNotes : PRIVACY_NOTES_SNAPSHOT;
+  ul.innerHTML = notes.map(n => "<li><b>" + esc(n.model) + "：</b>" + esc(n.text) + "</li>").join("");
+  if (head) {
+    head.style.display = "";
+    $("#privacy-note-date").textContent = state.online ? "官方实时" : "内置快照";
+  }
+}
+
+function syncPriceModeUi() {
+  document.querySelectorAll("#price-mode button").forEach(b => {
+    b.classList.toggle("on", (b.dataset.m === "ratio") === state.ratioMode);
+  });
+  const suffix = state.ratioMode ? " ÷额度" : "";
+  const labels = { input: "输入 $/1M", output: "输出 $/1M", cacheRead: "缓存读取", cacheWrite: "缓存写入" };
+  document.querySelectorAll("#thead th[data-key] .th-btn").forEach(btn => {
+    const k = btn.dataset.key;
+    if (labels[k]) btn.innerHTML = esc(labels[k] + suffix) + '<span class="ic"></span>';
+  });
+}
+
+function setRatioMode(on) {
+  state.ratioMode = !!on;
+  try { localStorage.setItem(LS_RATIO, state.ratioMode ? "1" : "0"); } catch (e) { /* ignore */ }
+  renderStats();
+  renderTable();
+  syncPriceModeUi();
+}
+
+function saveCache(rows, notes, when) {
   try {
-    localStorage.setItem(LS_CACHE, JSON.stringify({ v: 1, fetchedAt: when, rows }));
+    localStorage.setItem(LS_CACHE, JSON.stringify({ v: 2, fetchedAt: when, rows, notes }));
   } catch (e) { /* storage unavailable */ }
 }
 
@@ -754,14 +1027,15 @@ function loadCache() {
     const raw = localStorage.getItem(LS_CACHE);
     if (!raw) return null;
     const data = JSON.parse(raw);
-    if (!data || data.v !== 1 || !Array.isArray(data.rows)) return null;
-    return { fetchedAt: data.fetchedAt, rows: data.rows };
+    if (!data || (data.v !== 2 && data.v !== 1) || !Array.isArray(data.rows)) return null;
+    return { fetchedAt: data.fetchedAt, rows: data.rows, notes: data.notes || null };
   } catch (e) { return null; }
 }
 
-function applyData(rows, label, when, save, online) {
+function applyData(rows, notes, label, when, save, online) {
   state.rows = rows;
-  if (save) saveCache(rows, when);
+  if (notes && notes.length) state.privacyNotes = notes;
+  if (save) saveCache(rows, state.privacyNotes, when);
   render();
   setStatus(label, when, online);
   setBanner(false);
@@ -797,10 +1071,11 @@ async function fetchLive() {
     try {
       const text = await fetchText(src.url);
       const rows = src.type === "mdx" ? parseMdPricingTable(text) : parseHtmlPricingTable(text);
-      if (validateRows(rows)) {
-        result = { rows, label: src.label };
-        break;
-      }
+      if (!validateRows(rows)) continue;
+      let priv = src.type === "mdx" ? parsePrivacySection(text) : parseHtmlPrivacySection(text);
+      mergePrivacy(rows, priv);
+      result = { rows, notes: priv && priv.notes ? priv.notes : null, label: src.label };
+      break;
     } catch (e) { /* try next source */ }
   }
   setRefreshing(false);
@@ -811,13 +1086,16 @@ async function fetchLive() {
     toast("自动更新失败，已保留当前数据");
     return;
   }
+  if (!result.notes) result.notes = state.privacyNotes && state.privacyNotes.length ? state.privacyNotes : PRIVACY_NOTES_SNAPSHOT;
   if (dataKey(result.rows) === dataKey(state.rows)) {
-    saveCache(state.rows, stamp);
+    saveCache(state.rows, result.notes, stamp);
+    state.privacyNotes = result.notes;
+    renderPrivacyNotes();
     setStatus(result.label, stamp, true);
     setBanner(false);
     toast("价格数据已是最新");
   } else {
-    applyData(result.rows, result.label, stamp, true, true);
+    applyData(result.rows, result.notes, result.label, stamp, true, true);
     toast("已自动更新至最新价格数据");
   }
 }
@@ -865,6 +1143,18 @@ function bindEvents() {
   });
   $("#refresh").addEventListener("click", fetchLive);
   $("#theme").addEventListener("click", toggleTheme);
+  $("#price-mode").addEventListener("click", e => {
+    const btn = e.target.closest("button[data-m]");
+    if (!btn) return;
+    setRatioMode(btn.dataset.m === "ratio");
+  });
+  $("#privacy-legend").addEventListener("click", e => {
+    const chip = e.target.closest(".chip[data-p]");
+    if (!chip) return;
+    state.privacyFilter = chip.dataset.p;
+    renderPrivacyLegend();
+    renderTable();
+  });
 }
 
 (function boot() {
@@ -875,11 +1165,21 @@ function bindEvents() {
   syncThemeUi();
   bindEvents();
   updatePeakStatus();
+  try {
+    state.ratioMode = localStorage.getItem(LS_RATIO) === "1";
+    const sd = $("#snapshot-date");
+    if (sd) sd.textContent = SNAPSHOT.date;
+  } catch (e) { /* ignore */ }
   const cached = loadCache();
   if (cached && validateRows(cached.rows)) {
-    applyData(cached.rows, "本地缓存", cached.fetchedAt || "", false, false);
+    if (cached.rows[0] && cached.rows[0].retain === undefined) {
+      mergePrivacy(cached.rows, { table: PRIVACY_SNAPSHOT_TABLE.map(r => ({ model: r[0], train: r[1], retain: r[2] })) });
+    }
+    state.privacyNotes = cached.notes && cached.notes.length ? cached.notes : PRIVACY_NOTES_SNAPSHOT;
+    applyData(cached.rows, state.privacyNotes, "本地缓存", cached.fetchedAt || "", false, false);
   } else {
-    applyData(SNAPSHOT.rows, "内置快照", SNAPSHOT.date, false, false);
+    state.privacyNotes = PRIVACY_NOTES_SNAPSHOT;
+    applyData(SNAPSHOT.rows, PRIVACY_NOTES_SNAPSHOT, "内置快照", SNAPSHOT.date, false, false);
   }
   setInterval(updatePeakStatus, 30000);
   fetchLive();

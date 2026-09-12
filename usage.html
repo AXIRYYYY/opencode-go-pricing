@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark light">
+<title>用量 · OpenCode Go & DeepSeek</title>
+<style>
+  :root{
+    --font: "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", system-ui, -apple-system, sans-serif;
+    --mono: "Cascadia Mono", "Cascadia Code", Consolas, "SF Mono", Menlo, monospace;
+    --radius: 14px;
+  }
+  [data-theme="dark"]{
+    --bg:#0a0e1a;
+    --glow1:rgba(99,102,241,.16);
+    --glow2:rgba(34,211,238,.10);
+    --card:rgba(255,255,255,.035);
+    --card-solid:#0e1424;
+    --border:rgba(255,255,255,.08);
+    --border-strong:rgba(255,255,255,.14);
+    --text:#e7eaf3;
+    --muted:#9aa3ba;
+    --hover:rgba(255,255,255,.035);
+    --bar-track:rgba(255,255,255,.08);
+    --accent:#818cf8;
+    --ok:#34d399;
+    --warn:#fbbf24;
+    --err:#f87171;
+    --shadow:0 8px 30px rgba(0,0,0,.35);
+  }
+  [data-theme="light"]{
+    --bg:#f2f4fa;
+    --glow1:rgba(99,102,241,.12);
+    --glow2:rgba(34,211,238,.12);
+    --card:#ffffff;
+    --card-solid:#ffffff;
+    --border:rgba(15,23,42,.10);
+    --border-strong:rgba(15,23,42,.18);
+    --text:#1b2334;
+    --muted:#4f596e;
+    --hover:rgba(15,23,42,.035);
+    --bar-track:rgba(15,23,42,.08);
+    --accent:#5a63e8;
+    --ok:#0e9f6e;
+    --warn:#d97706;
+    --err:#dc2626;
+    --shadow:0 8px 30px rgba(15,23,42,.08);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:var(--font);
+    font-size:15px;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    text-rendering:optimizeLegibility;
+    background:
+      radial-gradient(900px 480px at 12% -8%, var(--glow1), transparent 60%),
+      radial-gradient(900px 480px at 88% -12%, var(--glow2), transparent 60%),
+      var(--bg);
+    color:var(--text);
+    min-height:100vh;
+    transition:background .3s ease, color .3s ease;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:30px 22px 64px}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+
+  /* ---------- header ---------- */
+  header{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:22px}
+  .brand{display:flex;align-items:center;gap:14px;min-width:0}
+  .brand-badge{
+    width:46px;height:46px;flex:none;border-radius:13px;
+    display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:17px;color:#fff;
+    background:linear-gradient(135deg,#34d399,#22d3ee);
+    box-shadow:0 6px 20px rgba(52,211,153,.4);
+  }
+  .brand h1{margin:0;font-size:23px}
+  .brand p{margin:4px 0 0;font-size:13.5px;color:var(--muted)}
+  .hactions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .status{
+    display:flex;align-items:center;gap:8px;
+    font-size:13px;color:var(--muted);
+    border:1px solid var(--border);border-radius:999px;
+    padding:6px 13px;background:var(--card);
+    max-width:340px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .dot{width:8px;height:8px;border-radius:50%;flex:none;background:var(--muted)}
+  .dot.ok{background:var(--ok);box-shadow:0 0 8px var(--ok)}
+  .dot.warn{background:var(--warn);box-shadow:0 0 8px var(--warn)}
+  .dot.err{background:var(--err);box-shadow:0 0 8px var(--err)}
+  #peak-next{margin-left:2px;font-size:12px}
+  .btn{
+    display:inline-flex;align-items:center;gap:7px;
+    font:inherit;font-size:13.5px;color:var(--text);
+    background:var(--card);border:1px solid var(--border);
+    border-radius:10px;padding:8px 14px;cursor:pointer;
+    transition:all .18s ease;
+  }
+  .btn:hover{border-color:var(--border-strong);transform:translateY(-1px);box-shadow:var(--shadow)}
+  .btn:active{transform:translateY(0)}
+  .btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .btn.primary{background:linear-gradient(135deg,rgba(99,102,241,.22),rgba(34,211,238,.18));border-color:rgba(99,102,241,.45)}
+  .btn.danger{color:var(--err)}
+  .spin svg{animation:rot .9s linear infinite}
+  @keyframes rot{to{transform:rotate(360deg)}}
+
+  /* ---------- hero cards ---------- */
+  .hero{
+    background:var(--card);border:1px solid var(--border);
+    border-radius:var(--radius);padding:22px 24px;margin-bottom:12px;
+    box-shadow:var(--shadow);
+  }
+  .hero-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+  .hero-head h2{margin:0;font-size:19px}
+  .hero-head .sub{font-size:12.5px;color:var(--muted);margin-left:auto}
+  .hero-head .sub code{font-family:var(--mono);font-size:11.5px}
+  .badge{
+    display:inline-block;font-size:12.5px;border-radius:999px;padding:3px 10px;white-space:nowrap;
+    border:1px solid transparent;
+  }
+  .b-ok{color:var(--ok);background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.32)}
+  .b-warn{color:var(--warn);background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.32)}
+  .b-err{color:var(--err);background:rgba(248,113,113,.1);border-color:rgba(248,113,113,.35)}
+  .b-mut{color:var(--muted);background:var(--bar-track);border-color:var(--border)}
+
+  .hero3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}
+  .gauge{
+    text-align:center;padding:20px 10px 18px;
+    border:1px solid var(--border);border-radius:12px;
+  }
+  .ring{width:140px;height:140px}
+  .ring .track{fill:none;stroke:var(--bar-track);stroke-width:11}
+  .ring .fill{
+    fill:none;stroke-width:11;stroke-linecap:round;
+    transform:rotate(-90deg);transform-origin:center;
+    transition:stroke-dasharray .5s ease;
+  }
+  .ring text{font-family:var(--mono);font-size:24px;font-weight:700;fill:var(--text)}
+  .g-label{font-size:16px;font-weight:700;margin-top:10px}
+  .g-label small{font-weight:400;color:var(--muted);font-size:12.5px;margin-left:6px}
+  .g-reset{font-size:13.5px;color:var(--muted);margin-top:6px}
+  .g-pace{font-size:12.5px;color:var(--muted);margin-top:5px}
+  .g-status{margin-top:9px}
+
+  .hero-bal{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:12px}
+  .bal-big{
+    text-align:center;padding:22px 12px 18px;
+    border:1px solid var(--border);border-radius:12px;
+  }
+  .bal-big .cur{font-size:14px;font-weight:700;color:var(--muted);letter-spacing:1px}
+  .bal-big .num{font-family:var(--mono);font-size:38px;font-weight:700;margin-top:6px;line-height:1.15}
+  .bal-big .split{font-size:13px;color:var(--muted);margin-top:8px}
+  .empty-note{color:var(--muted);font-size:14px;padding:26px 0;text-align:center}
+  .err-note{color:var(--err);font-size:14px;padding:18px 4px}
+
+  /* ---------- settings (collapsed) ---------- */
+  details.settings{
+    background:var(--card);border:1px solid var(--border);
+    border-radius:var(--radius);padding:14px 20px;margin-bottom:12px;
+  }
+  details.settings summary{
+    cursor:pointer;list-style:none;
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+    font-weight:700;font-size:15.5px;outline:none;
+  }
+  details.settings summary::-webkit-details-marker{display:none}
+  details.settings summary .hint-arrow{color:var(--muted);font-size:12px}
+  .setdot{font-size:13px;font-weight:600}
+  .setdot.ok{color:var(--ok)}
+  .setdot.muted{color:var(--muted)}
+  .set-body{margin-top:14px}
+  .set-body .sub{font-size:13px;color:var(--muted);margin:0 0 14px}
+  .set-body .sub code{font-family:var(--mono);font-size:12px}
+  .krow{display:grid;grid-template-columns:110px 1fr auto;gap:10px;align-items:center;margin-bottom:10px}
+  .krow label{font-size:13.5px;font-weight:600}
+  .krow input{
+    width:100%;font-family:var(--mono);font-size:13px;color:var(--text);
+    background:var(--bg);border:1px solid var(--border);
+    border-radius:10px;padding:9px 12px;outline:none;
+    transition:border-color .18s ease;
+  }
+  .krow input:focus{border-color:var(--accent)}
+  .ksaved{font-size:12.5px;color:var(--muted);font-family:var(--mono)}
+  .kbtns{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+  .hint{font-size:12.5px;color:var(--muted);line-height:1.9;margin:10px 0 0}
+  .hint code{font-family:var(--mono);font-size:11.5px}
+
+  #go-alerts{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+  #go-alerts div{font-size:14px;border-radius:10px;padding:10px 14px;line-height:1.7;border:1px solid transparent}
+  .alert-red{color:var(--err);background:rgba(248,113,113,.09);border-color:rgba(248,113,113,.35)}
+  .alert-yellow{color:var(--warn);background:rgba(251,191,36,.09);border-color:rgba(251,191,36,.3)}
+  .gauge.bottleneck{border-color:var(--err);box-shadow:0 0 0 1px var(--err)}
+
+  footer{margin-top:22px;font-size:13px;color:var(--muted);line-height:2}
+  footer ul{margin:6px 0;padding-left:18px}
+
+  #toast{
+    position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(14px);
+    background:var(--card-solid);border:1px solid var(--border-strong);
+    color:var(--text);font-size:14px;border-radius:11px;padding:11px 19px;
+    box-shadow:var(--shadow);opacity:0;pointer-events:none;
+    transition:all .28s ease;z-index:99;white-space:nowrap;
+    max-width:92vw;overflow:hidden;text-overflow:ellipsis;
+  }
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  @media (max-width:860px){
+    .hero3{grid-template-columns:1fr;max-width:340px;margin-left:auto;margin-right:auto}
+    .krow{grid-template-columns:1fr}
+    .hero-head .sub{margin-left:0}
+  }
+  @media (max-width:620px){
+    .wrap{padding:20px 14px 48px}
+    .brand p{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="brand-badge">用</div>
+      <div>
+        <h1>用量 · Go & DeepSeek</h1>
+        <p>Key 只存你自己的浏览器，直接调官方接口 · 每次打开自动拉取</p>
+      </div>
+    </div>
+    <div class="hactions">
+      <span class="status" id="peak-pill" title="DeepSeek 计费时段"><span class="dot" id="peak-dot"></span><span id="peak-text">…</span><span class="muted" id="peak-next"></span></span>
+      <a class="btn" href="index.html" title="返回价格表">
+        <svg viewBox="0 0 24 24"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+        价格表
+      </a>
+      <button class="btn primary" id="refresh">
+        <svg viewBox="0 0 24 24"><path d="M21.5 2v6h-6"/><path d="M2.5 22v-6h6"/><path d="M2 12a10 10 0 0 1 17.2-7L21.5 8"/><path d="M22 12a10 10 0 0 1-17.2 7L2.5 16"/></svg>
+        刷新用量
+      </button>
+      <button class="btn" id="theme" title="切换主题">
+        <svg viewBox="0 0 24 24" id="theme-ic"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        <span id="theme-label">浅色</span>
+      </button>
+    </div>
+  </header>
+
+  <section class="hero" id="card-go">
+    <div class="hero-head">
+      <h2>OpenCode Go</h2>
+      <span class="badge b-mut" id="go-updated">未拉取</span>
+      <span class="sub">订阅级三档限额 · 经本地代理</span>
+    </div>
+    <div id="go-body"><div class="empty-note">在下方「设置」里填入 Go Key 并启动本地代理后自动拉取</div></div>
+  </section>
+
+  <section class="hero" id="card-ds">
+    <div class="hero-head">
+      <h2>DeepSeek 余额</h2>
+      <span class="badge b-mut" id="ds-updated">未拉取</span>
+      <span class="sub">账号级余额 · 任一同账号 Key 结果相同</span>
+    </div>
+    <div id="ds-body"><div class="empty-note">在下方「设置」里填入 DeepSeek Key 后自动拉取</div></div>
+  </section>
+
+  <details class="settings" id="settings">
+    <summary>
+      <span>设置 · Key 与代理</span>
+      <span class="setdot muted" id="set-go">Go Key ✗</span>
+      <span class="setdot muted" id="set-ds">DeepSeek Key ✗</span>
+      <span class="setdot muted" id="set-proxy">代理 ✗</span>
+      <span class="hint-arrow">（点击展开）</span>
+    </summary>
+    <div class="set-body">
+      <p class="sub">各贴一次即可，以后打开自动拉取 · 只存 <code>localStorage</code>，不上传任何地方</p>
+      <div class="krow">
+        <label for="in-go">Go Key</label>
+        <input type="password" id="in-go" placeholder="opencode-go 的 key（见本地 auth.json）" autocomplete="off" spellcheck="false">
+        <span class="ksaved" id="saved-go"></span>
+      </div>
+      <div class="krow">
+        <label for="in-ds">DeepSeek Key</label>
+        <input type="password" id="in-ds" placeholder="sk- 开头（platform.deepseek.com/api_keys）" autocomplete="off" spellcheck="false">
+        <span class="ksaved" id="saved-ds"></span>
+      </div>
+      <div class="krow">
+        <label for="in-proxy">本地代理</label>
+        <input type="text" id="in-proxy" placeholder="http://127.0.0.1:8787（Go 卡必需，见下方）" autocomplete="off" spellcheck="false">
+        <span class="ksaved" id="proxy-state"></span>
+      </div>
+      <div class="kbtns">
+        <button class="btn primary" id="save-keys">保存并拉取</button>
+        <button class="btn danger" id="clear-keys">清除本地 Key</button>
+      </div>
+      <p class="hint">
+        Go Key 位置：本机 <code>~/.local/share/opencode/auth.json</code> 中 <code>"opencode-go"</code> 项的 key（或 Windows 下 <code>%USERPROFILE%\.local\share\opencode\auth.json</code>，以实际安装位置为准）。<br>
+        Go 接口不允许浏览器跨域直连，因此 <b>Go 卡必须走本地代理</b>：在仓库目录运行 <code>python usage-proxy.py</code>（Key 通过环境变量 <code>OPENCODE_GO_KEY</code> / <code>DEEPSEEK_API_KEY</code> 或同目录 <code>usage-proxy.keys.json</code> 提供，详见 README），保持窗口开着即可。DeepSeek 卡可直连，代理仅作备用。<br>
+        安全提示：DeepSeek 官方条款不建议把 Key 放前端页面；本页仅做个人自用，Key 只经浏览器直发官方域名（或你自己的本地代理）。建议使用可随时 revoke 的 Key，勿分享带 Key 的页面状态。
+      </p>
+    </div>
+  </details>
+
+  <footer>
+    <ul>
+      <li>Go 三档为订阅级限额：同一订阅下换哪个 Key 查都一样；多订阅才需要逐个查。</li>
+      <li>Go 接口返回的百分比取整到整数（如 5%，官方页面显示 5.9%），小数精度官方未开放；速度与外推采用多点回归计算以减小取整误差。</li>
+      <li>DeepSeek 余额为账号级：多个 Key 分通道只能看到同一个余额，分不清各通道消耗（接口本身不提供）。</li>
+      <li>DeepSeek 高峰时段为周一至周五 01:00–04:00 与 06:00–10:00 UTC（北京时间 09:00–12:00、14:00–18:00），其余时段（含周末）均为低峰价；顶部徽章与价格页同逻辑。</li>
+    </ul>
+  </footer>
+
+</div>
+<div id="toast"></div>
+<noscript>本页面需要启用 JavaScript 才能拉取用量数据。</noscript>
+
+<script>
+'use strict';
+
+const GO_URL = 'https://opencode.ai/zen/go/v1/usage';
+const DS_URL = 'https://api.deepseek.com/user/balance';
+const LS_KEYS = 'opengo-usage-keys-v1';
+const LS_PROXY = 'opengo-usage-proxy-v1';
+const LS_THEME = 'opengo-theme';
+const DEFAULT_PROXY = 'http://127.0.0.1:8787';
+const POLL_MS = 60000;
+const RING_C = 2 * Math.PI * 52;
+const WARN_AT = 90;
+// 临界值（源自官方基础限制 $12/$30/$60：5h=月20%，周=月50%）
+const F_WEEK = 0.5, F_5H = 0.2, CRIT_WEEK = 50, CRIT_5H = 80, MONTHLY_DOLLARS = 60;
+const WIN_MS = { rolling: 5 * 3600e3, weekly: 7 * 86400e3 };
+// 速度：localStorage 存历史快照
+const LS_HISTORY = 'opengo-usage-history-v1';
+const HIST_KEEP_MS = 7 * 86400e3;
+const VEL_LOOKBACK_MS = 24 * 3600e3;
+const VEL_MIN_SPAN_MS = 6 * 3600e3;
+
+const WINDOWS = [
+  { key: 'rolling', label: '5 小时', en: 'rolling' },
+  { key: 'weekly', label: '周', en: 'weekly' },
+  { key: 'monthly', label: '月', en: 'monthly' }
+];
+
+const state = {
+  go: { status: 'idle', data: null, error: '', updatedAt: '', via: '' },
+  ds: { status: 'idle', data: null, error: '', updatedAt: '', via: '' },
+  peak: undefined
+};
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+/* ---------- peak (same logic as index.html) ---------- */
+function isDeepSeekPeak(d) {
+  const day = d.getUTCDay();
+  if (day === 0 || day === 6) return false;
+  const h = d.getUTCHours() + d.getUTCMinutes() / 60;
+  return (h >= 1 && h < 4) || (h >= 6 && h < 10);
+}
+function nextDeepSeekTransition(d) {
+  for (let i = 0; i < 9; i++) {
+    const day = new Date(d.getTime() + i * 86400000);
+    if (day.getUTCDay() === 0 || day.getUTCDay() === 6) continue;
+    for (const h of [1, 4, 6, 10]) {
+      const t = new Date(Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate(), h, 0, 0));
+      if (t > d) return t;
+    }
+  }
+  return null;
+}
+function fmtCountdown(ms) {
+  const mins = Math.max(0, Math.ceil(ms / 60000));
+  const dd = Math.floor(mins / 1440), h = Math.floor((mins % 1440) / 60), m = mins % 60;
+  if (dd > 0) return dd + '天' + (h > 0 ? h + '小时' : '') + '后切换';
+  if (h > 0) return h + '小时' + (m > 0 ? m + '分' : '') + '后切换';
+  return m + '分钟后切换';
+}
+function updatePeakStatus() {
+  const now = new Date();
+  const peak = isDeepSeekPeak(now);
+  const next = nextDeepSeekTransition(now);
+  state.peak = peak;
+  $('#peak-dot').className = 'dot ' + (peak ? 'warn' : 'ok');
+  $('#peak-text').textContent = peak ? 'DeepSeek 高峰价' : 'DeepSeek 低峰价';
+  $('#peak-next').textContent = next ? '· ' + fmtCountdown(next - now) : '';
+  $('#peak-pill').title = (peak ? '高峰价生效中' : '低峰价生效中')
+    + '。高峰时段为 UTC 周一至周五 01:00–04:00、06:00–10:00（北京时间 09:00–12:00、14:00–18:00），其余时段（含周末）均为低峰价。';
+}
+
+/* ---------- toast / theme ---------- */
+let toastTimer = null;
+function toast(msg) {
+  const el = $('#toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+function toggleTheme() {
+  const cur = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+  document.documentElement.dataset.theme = cur;
+  try { localStorage.setItem(LS_THEME, cur); } catch (e) { /* ignore */ }
+  syncThemeUi();
+}
+function syncThemeUi() {
+  const light = document.documentElement.dataset.theme === 'light';
+  $('#theme-label').textContent = light ? '深色' : '浅色';
+  $('#theme-ic').innerHTML = light
+    ? '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>'
+    : '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>';
+}
+
+/* ---------- keys ---------- */
+function loadKeys() {
+  try {
+    const raw = localStorage.getItem(LS_KEYS);
+    if (!raw) return { goKey: '', dsKey: '' };
+    const d = JSON.parse(raw);
+    return { goKey: d && typeof d.goKey === 'string' ? d.goKey : '', dsKey: d && typeof d.dsKey === 'string' ? d.dsKey : '' };
+  } catch (e) { return { goKey: '', dsKey: '' }; }
+}
+function saveKeys(goKey, dsKey) {
+  try { localStorage.setItem(LS_KEYS, JSON.stringify({ goKey, dsKey })); } catch (e) { /* ignore */ }
+}
+function maskTail(k) {
+  if (!k) return '';
+  return '已保存 ····' + k.slice(-4);
+}
+function syncKeyInputs() {
+  const { goKey, dsKey } = loadKeys();
+  if (goKey && !$('#in-go').value) $('#in-go').value = goKey;
+  if (dsKey && !$('#in-ds').value) $('#in-ds').value = dsKey;
+  const px = proxyBase();
+  if (!$('#in-proxy').value) $('#in-proxy').value = px;
+  $('#saved-go').textContent = maskTail(goKey);
+  $('#saved-ds').textContent = maskTail(dsKey);
+  renderSettingsStatus();
+}
+function renderSettingsStatus() {
+  const { goKey, dsKey } = loadKeys();
+  const set = (id, ok, t, f) => {
+    const el = $(id);
+    el.textContent = ok ? t : f;
+    el.className = 'setdot ' + (ok ? 'ok' : 'muted');
+  };
+  set('#set-go', !!goKey, 'Go Key ✓', 'Go Key ✗');
+  set('#set-ds', !!dsKey, 'DeepSeek Key ✓', 'DeepSeek Key ✗');
+  set('#set-proxy', $('#proxy-state').textContent === '已连接', '代理 ✓', '代理 ✗');
+}
+
+/* ---------- proxy ---------- */
+function normBase(v) {
+  v = (v || '').trim().replace(/\/+$/, '');
+  if (v && v.indexOf('://') === -1) v = 'http://' + v; // 裸填 localhost:8787 也能用
+  return v;
+}
+function proxyBase() {
+  const typed = normBase($('#in-proxy').value);
+  if (typed) return typed;
+  try {
+    const raw = localStorage.getItem(LS_PROXY);
+    if (raw === null) return DEFAULT_PROXY; // 从未配置过，直接用默认地址
+    return normBase(raw);
+  } catch (e) { return DEFAULT_PROXY; }
+}
+function saveProxyBase(v) {
+  try { localStorage.setItem(LS_PROXY, (v || '').trim()); } catch (e) { /* ignore */ }
+}
+function fetchProxy(path, ms, base) {
+  const root = (base !== undefined ? base : proxyBase()).replace(/\/+$/, '');
+  return new Promise((resolve, reject) => {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => { ctl.abort(); reject(Object.assign(new Error('timeout'), { code: 'TIMEOUT' })); }, ms || 8000);
+    fetch(root + path, { signal: ctl.signal, cache: 'no-store', headers: { 'Accept': 'application/json' } })
+      .then(async r => {
+        let j = null;
+        try { j = await r.json(); } catch (e) { /* ignore */ }
+        if (!r.ok) {
+          const err = new Error('HTTP ' + r.status);
+          err.code = 'HTTP_' + r.status;
+          err.body = j;
+          throw err;
+        }
+        clearTimeout(timer);
+        resolve(j);
+      })
+      .catch(e => { clearTimeout(timer); reject(e); });
+  });
+}
+async function pingProxy() {
+  const el = $('#proxy-state');
+  const base = proxyBase();
+  if (!base) { el.textContent = '未配置（Go 卡需代理）'; renderSettingsStatus(); return; }
+  el.textContent = '检测中…';
+  renderSettingsStatus();
+  try {
+    await fetchProxy('/', 3000, base);
+    el.textContent = '已连接';
+  } catch (e) {
+    el.textContent = '未连上';
+  }
+  renderSettingsStatus();
+}
+
+/* ---------- fetch ---------- */
+function fetchJson(url, key, ms) {
+  return new Promise((resolve, reject) => {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => { ctl.abort(); reject(Object.assign(new Error('timeout'), { code: 'TIMEOUT' })); }, ms || 12000);
+    fetch(url, { signal: ctl.signal, cache: 'no-store', headers: { 'Accept': 'application/json', 'Authorization': 'Bearer ' + key } })
+      .then(r => {
+        if (!r.ok) {
+          const err = new Error('HTTP ' + r.status);
+          err.code = 'HTTP_' + r.status;
+          throw err;
+        }
+        return r.json();
+      })
+      .then(j => { clearTimeout(timer); resolve(j); })
+      .catch(e => { clearTimeout(timer); reject(e); });
+  });
+}
+function errText(e, name) {
+  if (e && e.code === 'TIMEOUT') return name + '请求超时，请检查网络后重试';
+  if (e && e.code === 'HTTP_401') return name + ' Key 无效或已过期（401），请重新粘贴';
+  if (e && e.code === 'HTTP_402') return '余额不足（402），请前往控制台充值';
+  if (e && e.code === 'HTTP_429') return '触发限流（429），稍后自动重试';
+  if (e && e.code === 'PROXY_NO_KEY') return '本地代理未配置该 Key：设置环境变量后重启 usage-proxy.py（见 README）';
+  if (e && e.code === 'NO_KEY') return '未配置 Key：请展开下方「设置」填入 Key（Go 卡还需启动本地代理）';
+  if (e && e.code && String(e.code).indexOf('HTTP_') === 0) return name + '接口返回 ' + String(e.code).slice(5) + '，稍后重试';
+  if (e instanceof TypeError) {
+    if (e.proxyTried) return '直连被跨域拦截，且本地代理也连不上：请确认 usage-proxy.py 已运行、代理地址正确（默认 ' + DEFAULT_PROXY + '）';
+    return '网络或跨域被拦：浏览器直连官方接口失败。Go 卡请走本地代理（见下方设置说明），或检查网络/代理/VPN 后重试';
+  }
+  return (name + '拉取失败：' + ((e && e.message) || '未知错误'));
+}
+
+/* ---------- parse ---------- */
+function parseGo(body) {
+  const usage = body && body.usage;
+  const out = {};
+  for (const { key } of WINDOWS) {
+    const w = usage && usage[key];
+    if (w && typeof w.percent === 'number' && Number.isFinite(w.percent)) {
+      out[key] = {
+        status: typeof w.status === 'string' ? w.status : 'ok',
+        percent: Math.max(0, Math.min(100, w.percent)),
+        resetsAt: typeof w.resetsAt === 'string' ? w.resetsAt : ''
+      };
+    }
+  }
+  if (!out.rolling && !out.weekly && !out.monthly) throw new Error('unexpected response shape');
+  return out;
+}
+function parseDs(body) {
+  if (!body || typeof body.is_available !== 'boolean' || !Array.isArray(body.balance_infos)) {
+    throw new Error('unexpected response shape');
+  }
+  return { isAvailable: body.is_available, infos: body.balance_infos };
+}
+
+/* ---------- load with direct → proxy fallback ---------- */
+async function loadCard(kind, key) {
+  const isGo = kind === 'go';
+  const parse = isGo ? parseGo : parseDs;
+  const directUrl = isGo ? GO_URL : DS_URL;
+  const proxyPath = isGo ? '/api/go/usage' : '/api/ds/balance';
+  let directErr = null;
+  if (key) {
+    try {
+      return { data: parse(await fetchJson(directUrl, key, 12000)), via: '直连' };
+    } catch (e) {
+      directErr = e;
+      // HTTP 错误（如 401）说明链路是通的，直接报出来，不要用代理掩盖；
+      // 只有网络层失败（跨域/断网/超时）才走代理。
+      if (!(e instanceof TypeError) && (!e || e.code !== 'TIMEOUT')) throw e;
+    }
+  }
+  const base = proxyBase();
+  if (!base) throw directErr || Object.assign(new Error('no key'), { code: 'NO_KEY' });
+  try {
+    return { data: parse(await fetchProxy(proxyPath, 15000, base)), via: '代理' };
+  } catch (e) {
+    if (e && e.code === 'HTTP_503' && e.body && e.body.error === 'missing_key') {
+      throw Object.assign(new Error('proxy missing key'), { code: 'PROXY_NO_KEY' });
+    }
+    if (e instanceof TypeError || (e && e.code === 'TIMEOUT')) {
+      if (directErr) {
+        directErr.proxyTried = true;
+        throw directErr;
+      }
+      throw e;
+    }
+    throw e;
+  }
+}
+
+/* ---------- render ---------- */
+function ringColor(pct, status) {
+  if (status === 'rate-limited' || pct >= 90) return 'var(--err)';
+  if (pct >= 75) return 'var(--warn)';
+  if (pct >= 50) return 'var(--accent)';
+  return 'var(--ok)';
+}
+function statusBadge(w) {
+  if (!w) return '<span class="badge b-mut">无数据</span>';
+  if (w.status === 'rate-limited') return '<span class="badge b-err">已限流</span>';
+  if (w.percent >= 90) return '<span class="badge b-err">告急</span>';
+  if (w.percent >= 75) return '<span class="badge b-warn">偏高</span>';
+  return '<span class="badge b-ok">正常</span>';
+}
+function paceText(key, w) {
+  if (!w) return '';
+  let budget = '';
+  const t = new Date(w.resetsAt).getTime();
+  if (Number.isFinite(t)) {
+    const days = (t - Date.now()) / 86400000;
+    if (days > 0) budget = '日预算 ' + ((100 - w.percent) / days).toFixed(1) + '%';
+  }
+  const vl = velocity(key);
+  const spd = vl ? '速度 ' + vl.v.toFixed(1) + '%/天' : '速度采集中';
+  return budget ? budget + ' · ' + spd : spd;
+}
+function num1(p) {
+  return (Math.round(p * 10) / 10).toFixed(1);
+}
+function pctLabel(p) {
+  if (p <= 0) return '0%';
+  if (Math.round(p * 10) / 10 === 0) return '<0.1%';
+  return num1(p) + '%';
+}
+function fmtReset(iso) {
+  const t = new Date(iso).getTime();
+  if (!iso || !Number.isFinite(t)) return '—';
+  const ms = t - Date.now();
+  if (ms <= 0) return '即将重置';
+  const mins = Math.ceil(ms / 60000);
+  const dd = Math.floor(mins / 1440), h = Math.floor((mins % 1440) / 60), m = mins % 60;
+  if (dd > 0) return dd + '天' + (h > 0 ? h + '小时' : '') + '后重置';
+  if (h > 0) return h + '小时' + (m > 0 ? m + '分' : '') + '后重置';
+  return m + '分钟后重置';
+}
+function timeStr(iso) {
+  try { return new Date(iso).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }); }
+  catch (e) { return ''; }
+}
+
+/* ---------- history & velocity ---------- */
+function loadHistory() {
+  try {
+    const d = JSON.parse(localStorage.getItem(LS_HISTORY) || '[]');
+    return Array.isArray(d) ? d.filter(p => p && Number.isFinite(p.t)) : [];
+  } catch (e) { return []; }
+}
+function recordHistory(data) {
+  try {
+    const h = loadHistory();
+    const now = Date.now();
+    const pt = { t: now };
+    for (const { key } of WINDOWS) {
+      const w = data && data[key];
+      pt[key] = w && Number.isFinite(w.percent) ? w.percent : null;
+    }
+    const last = h[h.length - 1];
+    if (!last || now - last.t >= 5 * 60e3) h.push(pt); // 至多5分钟记一点
+    const cutoff = now - HIST_KEEP_MS;
+    localStorage.setItem(LS_HISTORY, JSON.stringify(h.filter(p => p.t >= cutoff).slice(-3000)));
+  } catch (e) { /* ignore */ }
+}
+// 返回 {v: 每天百分点}；检测到重置（骤降超5个点）则只用重置后数据；跨度不足返回 null
+function velocity(key) {
+  const h = loadHistory().filter(p => p[key] != null);
+  if (h.length < 2) return null;
+  const now = Date.now();
+  let start = 0;
+  for (let i = h.length - 1; i > 0; i--) {
+    if (h[i - 1][key] - h[i][key] > 5) { start = i; break; }
+  }
+  const seg = h.slice(start);
+  const target = now - VEL_LOOKBACK_MS;
+  let ai = 0;
+  for (let i = 0; i < seg.length; i++) { if (seg[i].t <= target) ai = i; else break; }
+  const points = seg.slice(ai);
+  // 最小二乘回归：接口百分比取整到整数，多点拟合可抵消取整量化误差
+  const n = points.length;
+  if (n < 2) return null;
+  const t0 = points[0].t;
+  let sx = 0, sy = 0, sxx = 0, sxy = 0;
+  for (const p of points) {
+    const x = (p.t - t0) / 86400000, y = p[key];
+    sx += x; sy += y; sxx += x * x; sxy += x * y;
+  }
+  const denom = n * sxx - sx * sx;
+  const spanMs = points[n - 1].t - points[0].t;
+  if (spanMs < VEL_MIN_SPAN_MS || !(denom > 0)) return null;
+  return { v: (n * sxy - sx * sy) / denom, spanMs };
+}
+function forecastAt(pctNow, vPerDay, atMs) {
+  return pctNow + vPerDay * (atMs - Date.now()) / 86400000;
+}
+// 当月最后一个短窗口的起点：包含 Tm 的短窗口（短窗按固定周期滚动，以 Tw 为锚点）
+function lastWindowStart(TmMs, TwMs, winMs) {
+  if (!Number.isFinite(TmMs) || !Number.isFinite(TwMs) || TmMs <= Date.now()) return null;
+  let end = TwMs, guard = 0;
+  while (end < TmMs && guard++ < 100) end += winMs;
+  return end - winMs;
+}
+
+/* ---------- alerts ---------- */
+function fmtMD(iso) {
+  const t = new Date(iso).getTime();
+  if (!iso || !Number.isFinite(t)) return '未知日期';
+  return new Date(iso).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' });
+}
+function labelOf(k) {
+  const f = WINDOWS.find(x => x.key === k);
+  return f ? f.label : k;
+}
+function analyzeGo(data) {
+  const alerts = [];
+  let bottleneck = null, top = -1;
+  for (const { key } of WINDOWS) {
+    const w = data && data[key];
+    if (!w) continue;
+    if (w.status === 'rate-limited' || w.percent > top) {
+      bottleneck = key;
+      top = w.percent;
+    }
+  }
+  const bw = bottleneck && data ? data[bottleneck] : null;
+  if (!bw || (bw.status !== 'rate-limited' && bw.percent < WARN_AT)) bottleneck = null;
+  // 用完 / 预警
+  for (const { key, label } of WINDOWS) {
+    const w = data && data[key];
+    if (!w) continue;
+    if (w.status === 'rate-limited' || w.percent >= 100) {
+      alerts.push({ level: 'red', text: label + '额度已用完（' + fmtReset(w.resetsAt) + '），期间请求会被限流' });
+    } else if (w.percent >= WARN_AT) {
+      alerts.push({ level: 'yellow', text: label + '额度已用 ' + pctLabel(w.percent) + '，' + fmtReset(w.resetsAt) + '，省着用' });
+    }
+  }
+  // 搁浅分析：短窗紧张、且重置晚于长窗
+  const order = ['rolling', 'weekly', 'monthly'];
+  for (let i = 0; i < order.length - 1; i++) {
+    const s = data && data[order[i]], l = data && data[order[i + 1]];
+    if (!s || !l) continue;
+    if (s.status !== 'rate-limited' && s.percent < WARN_AT) continue;
+    const ts = new Date(s.resetsAt).getTime(), tl = new Date(l.resetsAt).getTime();
+    if (!Number.isFinite(ts) || !Number.isFinite(tl) || ts <= tl) continue;
+    const gap = Math.max(1, Math.round((ts - tl) / 86400000));
+    alerts.push({
+      level: 'red',
+      pair: order[i],
+      text: labelOf(order[i]) + '重置（' + fmtMD(s.resetsAt) + '）比' + labelOf(order[i + 1]) + '重置（' + fmtMD(l.resetsAt) + '）晚约 ' + gap + ' 天：这 ' + gap + ' 天里即使' + labelOf(order[i + 1]) + '额度有剩也会被卡住，建议把重活提前到 ' + fmtMD(l.resetsAt) + ' 前做完'
+    });
+  }
+  // 最低/最高消耗速度（需月档 + 速度）
+  const m = data && data.monthly;
+  const vm = velocity('monthly');
+  if (m && vm && vm.v > 0) {
+    const Tm = new Date(m.resetsAt).getTime();
+    if (Number.isFinite(Tm)) {
+      // 太快：按 100% 月周期外推（月已满则由上面的静态规则覆盖）
+      const mEnd = forecastAt(m.percent, vm.v, Tm);
+      if (m.percent < 100 && mEnd > 100) {
+        const hitAt = Date.now() + (100 - m.percent) / vm.v * 86400000;
+        const earlyDays = Math.max(1, Math.round((Tm - hitAt) / 86400000));
+        const vmax = (100 - m.percent) / Math.max(0.5, (Tm - Date.now()) / 86400000);
+        alerts.push({
+          level: 'red',
+          text: '按近 24h 速度（每天约 ' + vm.v.toFixed(1) + '%），月额度将于 ' + fmtMD(hitAt) + ' 提前用完（比月重置早 ' + earlyDays + ' 天）——降速到每天 ≤' + vmax.toFixed(1) + '% 可撑到月底'
+        });
+      }
+      // 太慢：各短窗临界（周 50% / 5h 80%，f=0.5/0.2）
+      const shorts = [
+        { key: 'weekly', f: F_WEEK, crit: CRIT_WEEK },
+        { key: 'rolling', f: F_5H, crit: CRIT_5H }
+      ];
+      for (const s of shorts) {
+        const w = data && data[s.key];
+        if (!w) continue;
+        const Tw = new Date(w.resetsAt).getTime();
+        const T0 = lastWindowStart(Tm, Tw, WIN_MS[s.key]);
+        if (T0 == null) continue;
+        if (T0 <= Date.now()) {
+          // 已在最后一窗内：精确公式，短窗打满也追不上即注定浪费
+          const reach = m.percent + Math.max(0, 100 - w.percent) * s.f;
+          if (reach < 100) {
+            if (alerts.some(x => x.level === 'red' && x.pair === s.key)) continue; // 已出搁浅红警，不叠报
+            const waste = 100 - reach;
+            alerts.push({
+              level: waste >= 15 ? 'red' : 'yellow',
+              pair: s.key,
+              text: '已进入' + labelOf(s.key) + '最后一窗：即使打满也只能冲到 ' + num1(reach) + '%，月末注定浪费 ≥' + num1(waste) + '%（约 $' + (waste * MONTHLY_DOLLARS / 100).toFixed(0) + '）——排点重活进来'
+            });
+          }
+        } else {
+          const mAtT0 = forecastAt(m.percent, vm.v, T0);
+          if (mAtT0 < s.crit) {
+            const need = (s.crit - m.percent) / Math.max(0.5, (T0 - Date.now()) / 86400000);
+            alerts.push({
+              level: 'yellow',
+              pair: s.key,
+              text: '按近 24h 速度（每天约 ' + vm.v.toFixed(1) + '%），到' + labelOf(s.key) + '最后一窗开始（' + fmtMD(T0) + '）月额度只能到 ' + num1(mAtT0) + '%，低于 ' + s.crit + '% 临界——之后即使打满也追不回。建议从现在起提速到每天 ≥' + need.toFixed(1) + '%'
+            });
+          }
+        }
+      }
+    }
+  }
+  return { alerts, bottleneck };
+}
+
+function renderGo() {
+  const s = state.go;
+  const badge = $('#go-updated');
+  if (s.status === 'ready' && s.data) {
+    badge.className = 'badge b-ok';
+    badge.textContent = '已更新 ' + timeStr(s.updatedAt) + (s.via ? ' · ' + s.via : '');
+    const a = analyzeGo(s.data);
+    const alertsHtml = a.alerts.length
+      ? '<div id="go-alerts">' + a.alerts.map(x => '<div class="alert-' + x.level + '">' + esc(x.text) + '</div>').join('') + '</div>'
+      : '';
+    $('#go-body').innerHTML = alertsHtml + '<div class="hero3">' + WINDOWS.map(({ key, label, en }) => {
+      const w = s.data[key];
+      const pct = w ? w.percent : 0;
+      const dash = (pct / 100 * RING_C).toFixed(1) + ' ' + RING_C.toFixed(1);
+      return '<div class="gauge' + (a.bottleneck === key ? ' bottleneck' : '') + '">' +
+        '<svg class="ring" viewBox="0 0 120 120">' +
+        '<circle class="track" cx="60" cy="60" r="52"/>' +
+        '<circle class="fill" cx="60" cy="60" r="52" style="stroke:' + ringColor(pct, w && w.status) + ';stroke-dasharray:' + dash + '"/>' +
+        '<text x="60" y="60" text-anchor="middle" dominant-baseline="central">' + (w ? Math.round(pct) + '%' : '—') + '</text>' +
+        '</svg>' +
+        '<div class="g-label">' + label + '<small>' + en + '</small></div>' +
+        '<div class="g-reset">' + (w ? fmtReset(w.resetsAt) : '该档无数据') + '</div>' +
+        '<div class="g-pace">' + (w ? paceText(key, w) : '') + '</div>' +
+        '<div class="g-status">' + statusBadge(w) + '</div>' +
+        '</div>';
+    }).join('') + '</div>';
+  } else if (s.status === 'loading') {
+    badge.className = 'badge b-mut';
+    badge.textContent = '拉取中…';
+    $('#go-body').innerHTML = '<div class="empty-note">正在拉取 Go 用量…</div>';
+  } else if (s.status === 'error') {
+    badge.className = 'badge b-err';
+    badge.textContent = '拉取失败';
+    $('#go-body').innerHTML = '<div class="err-note">' + esc(s.error) + '</div>';
+  } else {
+    badge.className = 'badge b-mut';
+    badge.textContent = '未拉取';
+    $('#go-body').innerHTML = '<div class="empty-note">在下方「设置」里填入 Go Key 并启动本地代理后自动拉取</div>';
+  }
+}
+
+function renderDs() {
+  const s = state.ds;
+  const badge = $('#ds-updated');
+  if (s.status === 'ready' && s.data) {
+    badge.className = 'badge ' + (s.data.isAvailable ? 'b-ok' : 'b-err');
+    badge.textContent = (s.data.isAvailable ? '可用' : '不可用') + ' · ' + timeStr(s.updatedAt) + (s.via ? ' · ' + s.via : '');
+    const rows = s.data.infos.map(info => {
+      const cur = info && info.currency ? String(info.currency) : '?';
+      const total = info && info.total_balance != null ? String(info.total_balance) : '—';
+      const granted = info && info.granted_balance != null ? String(info.granted_balance) : '—';
+      const topped = info && info.topped_up_balance != null ? String(info.topped_up_balance) : '—';
+      return '<div class="bal-big"><div class="cur">' + esc(cur) + '</div>' +
+        '<div class="num">' + esc(total) + '</div>' +
+        '<div class="split">赠送 ' + esc(granted) + ' · 充值 ' + esc(topped) + '</div></div>';
+    }).join('');
+    $('#ds-body').innerHTML = (s.data.isAvailable
+      ? ''
+      : '<div class="err-note">余额不足，API 调用会被拒绝（402），请充值。</div>') +
+      (rows ? '<div class="hero-bal">' + rows + '</div>' : '<div class="empty-note">接口未返回余额明细</div>');
+  } else if (s.status === 'loading') {
+    badge.className = 'badge b-mut';
+    badge.textContent = '拉取中…';
+    $('#ds-body').innerHTML = '<div class="empty-note">正在拉取 DeepSeek 余额…</div>';
+  } else if (s.status === 'error') {
+    badge.className = 'badge b-err';
+    badge.textContent = '拉取失败';
+    $('#ds-body').innerHTML = '<div class="err-note">' + esc(s.error) + '</div>';
+  } else {
+    badge.className = 'badge b-mut';
+    badge.textContent = '未拉取';
+    $('#ds-body').innerHTML = '<div class="empty-note">在下方「设置」里填入 DeepSeek Key 后自动拉取</div>';
+  }
+}
+
+/* ---------- actions ---------- */
+let refreshing = false;
+function setRefreshing(on) {
+  refreshing = on;
+  const btn = $('#refresh');
+  btn.classList.toggle('spin', on);
+  btn.disabled = on;
+}
+
+async function refreshAll(manual) {
+  if (refreshing) return;
+  const { goKey, dsKey } = loadKeys();
+  // 输入框里现填的 Key 优先并自动存下，首次粘贴点刷新也能用
+  const goK = ($('#in-go').value || '').trim() || goKey;
+  const dsK = ($('#in-ds').value || '').trim() || dsKey;
+  const pxRaw = normBase($('#in-proxy').value);
+  if ((goK || dsK) && (goK !== goKey || dsK !== dsKey)) saveKeys(goK, dsK);
+  saveProxyBase(pxRaw);
+  syncKeyInputs();
+  if (!goK && !dsK && !proxyBase()) {
+    if (manual) toast('请展开下方「设置」填入 Key');
+    renderGo();
+    renderDs();
+    return;
+  }
+  setRefreshing(true);
+  const jobs = [];
+  if (goK || proxyBase()) {
+    state.go.status = 'loading';
+    state.go.error = '';
+    renderGo();
+    jobs.push(
+      loadCard('go', goK)
+        .then(r => {
+          state.go = { status: 'ready', data: r.data, error: '', updatedAt: new Date().toISOString(), via: r.via };
+        })
+        .catch(e => { state.go = { status: 'error', data: null, error: errText(e, 'Go 用量'), updatedAt: '', via: '' }; })
+        .then(renderGo)
+    );
+  }
+  if (dsK || proxyBase()) {
+    state.ds.status = 'loading';
+    state.ds.error = '';
+    renderDs();
+    jobs.push(
+      loadCard('ds', dsK)
+        .then(r => {
+          state.ds = { status: 'ready', data: r.data, error: '', updatedAt: new Date().toISOString(), via: r.via };
+        })
+        .catch(e => { state.ds = { status: 'error', data: null, error: errText(e, 'DeepSeek 余额'), updatedAt: '', via: '' }; })
+        .then(renderDs)
+    );
+  }
+  await Promise.all(jobs);
+  if (state.go.status === 'ready' && state.go.data) recordHistory(state.go.data);
+  setRefreshing(false);
+  if (manual) {
+    const ok = (!goK && !proxyBase() || state.go.status === 'ready') && (!dsK && !proxyBase() || state.ds.status === 'ready');
+    toast(ok ? '用量已更新' : '部分拉取失败，详见卡片提示');
+  }
+}
+
+function bindEvents() {
+  $('#refresh').addEventListener('click', () => refreshAll(true));
+  $('#theme').addEventListener('click', toggleTheme);
+  $('#save-keys').addEventListener('click', () => {
+    const goK = $('#in-go').value.trim();
+    const dsK = $('#in-ds').value.trim();
+    const px = normBase($('#in-proxy').value);
+    if (!goK && !dsK) { toast('请至少填入一个 Key'); return; }
+    saveKeys(goK, dsK);
+    saveProxyBase(px);
+    syncKeyInputs();
+    pingProxy();
+    toast('已保存到本地，正在拉取…');
+    refreshAll(false);
+  });
+  $('#clear-keys').addEventListener('click', () => {
+    saveKeys('', '');
+    $('#in-go').value = '';
+    $('#in-ds').value = '';
+    state.go = { status: 'idle', data: null, error: '', updatedAt: '', via: '' };
+    state.ds = { status: 'idle', data: null, error: '', updatedAt: '', via: '' };
+    syncKeyInputs();
+    renderGo();
+    renderDs();
+    toast('本地 Key 已清除');
+  });
+}
+
+(function boot() {
+  try {
+    const saved = localStorage.getItem(LS_THEME);
+    if (saved) document.documentElement.dataset.theme = saved;
+  } catch (e) { /* ignore */ }
+  syncThemeUi();
+  bindEvents();
+  updatePeakStatus();
+  syncKeyInputs();
+  pingProxy();
+  renderGo();
+  renderDs();
+  // 首次使用（无任何 Key）自动展开设置做引导
+  const firstKeys = loadKeys();
+  if (!firstKeys.goKey && !firstKeys.dsKey) {
+    try { $('#settings').open = true; } catch (e) { /* ignore */ }
+  }
+  setInterval(updatePeakStatus, 30000);
+  const { goKey, dsKey } = loadKeys();
+  if (goKey || dsKey) refreshAll(false);
+  setInterval(() => {
+    const k = loadKeys();
+    if ((k.goKey && state.go.status === 'ready') || (k.dsKey && state.ds.status === 'ready')) refreshAll(false);
+  }, POLL_MS);
+})();
+</script>
+</body>
+</html>
