@@ -4,7 +4,22 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="color-scheme" content="dark light">
+<meta name="description" content="OpenCode Go 全部模型的每 1M tokens 单价与每月使用额度速查：按价排序、自动同步官方文档、支持中英双语。All OpenCode Go model prices & monthly quotas, sorted and auto-synced from the official docs (EN/ZH).">
 <title>OpenCode Go · 模型价格速查</title>
+<script>
+(function(){
+  try{
+    var q = new URLSearchParams(location.search).get("lang");
+    var saved = localStorage.getItem("opengo-lang");
+    var nav = (navigator.language || navigator.userLanguage || "").toLowerCase();
+    var lang = q || saved || (nav.indexOf("zh") === 0 ? "zh" : "en");
+    if (lang !== "zh" && lang !== "en") lang = "zh";
+    document.documentElement.setAttribute("data-lang", lang);
+    document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
+    document.title = lang === "zh" ? "OpenCode Go · 模型价格速查" : "OpenCode Go · Model Pricing Guide";
+  }catch(e){}
+})();
+</script>
 <style>
   :root{
     --font: "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", system-ui, -apple-system, sans-serif;
@@ -171,15 +186,16 @@
   .table-card{
     background:var(--card);border:1px solid var(--border);
     border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);
+    width:fit-content;max-width:100%;
   }
   .table-wrap{overflow:auto;max-height:72vh}
-  table{width:100%;border-collapse:separate;border-spacing:0;font-size:14.5px}
+  table{width:auto;border-collapse:separate;border-spacing:0;font-size:14.5px}
   thead th{
     position:sticky;top:0;z-index:5;
     background:var(--thead-bg);backdrop-filter:blur(10px);
     font-size:12.5px;font-weight:600;letter-spacing:.3px;text-transform:uppercase;
     color:var(--muted);text-align:left;
-    padding:12px 14px;border-bottom:1px solid var(--border);
+    padding:12px 10px;border-bottom:1px solid var(--border);
     white-space:nowrap;
   }
   thead th.num{text-align:right}
@@ -195,7 +211,7 @@
   th[aria-sort="descending"] .ic::after{content:"▼"}
   th[data-key]:not([aria-sort]) .th-btn:hover .ic::after{content:"▲";opacity:.35}
 
-  tbody td{padding:12px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
+  tbody td{padding:12px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
   tbody tr:last-child td{border-bottom:none}
   tbody tr{transition:background .15s ease}
   tbody tr:hover{background:var(--hover)}
@@ -206,8 +222,20 @@
   td.num,th.num{font-family:var(--mono);text-align:right;font-size:14px;white-space:nowrap;font-variant-numeric:tabular-nums}
   td.num.strong{font-weight:700;color:var(--text)}
   .padzero{opacity:0;user-select:none}
+  td.mid{font-family:var(--mono);font-size:13px;color:var(--muted);white-space:nowrap}
+  .mid-inner{display:inline-block;max-width:190px;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
+  .copy-id{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:24px;height:24px;margin-left:6px;vertical-align:-6px;
+    background:none;border:none;border-radius:7px;cursor:pointer;
+    color:var(--muted);transition:all .15s ease;padding:0;
+  }
+  .copy-id svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .copy-id:hover{color:var(--accent);background:var(--hover)}
+  .copy-id.copied{color:var(--ok)}
   .muted{color:var(--muted)}
   td.name{font-weight:600;font-size:14.5px;white-space:nowrap}
+  .name-inner{display:inline-block;max-width:230px;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
 
   .chip-sm{
     display:inline-block;font-size:13px;font-weight:600;
@@ -228,12 +256,24 @@
   .b-train{color:#f87171;background:rgba(248,113,113,.1);border-color:rgba(248,113,113,.4)}
   .b-keep{color:var(--warn);background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.32)}
   .b-zero{color:var(--muted);background:var(--bar-track);border-color:var(--border)}
+  .b-promo{color:#22d3ee;background:rgba(34,211,238,.1);border-color:rgba(34,211,238,.4)}
+  .allow-old{opacity:.45;text-decoration:line-through;font-size:12.5px}
   tr.is-train{box-shadow:inset 3px 0 0 0 rgba(248,113,113,.7)}
   .seg{display:inline-flex;background:var(--card);border:1px solid var(--border);border-radius:999px;padding:3px;gap:2px}
   .seg button{font:inherit;font-size:13px;color:var(--muted);background:none;border:none;border-radius:999px;padding:6px 13px;cursor:pointer;white-space:nowrap}
   .seg button.on{background:linear-gradient(135deg,rgba(99,102,241,.28),rgba(34,211,238,.22));color:var(--text);font-weight:600}
 
+  .fx-rate{
+    display:inline-flex;align-items:center;gap:6px;
+    font-size:12.5px;color:var(--muted);
+    border:1px solid var(--border);border-radius:999px;
+    padding:5px 11px;background:var(--card);white-space:nowrap;
+    font-variant-numeric:tabular-nums;
+  }
+  .fx-rate[hidden]{display:none}
+
   .allow{display:flex;align-items:center;justify-content:flex-end;gap:9px}
+  .allow-wrap{display:inline-block;text-align:right;line-height:1.9}
   .bar{display:inline-block;width:58px;height:4px;border-radius:99px;background:var(--bar-track);overflow:hidden;flex:none}
   .bar i{display:block;height:100%;border-radius:99px}
 
@@ -276,20 +316,24 @@
     <div class="brand">
       <div class="brand-badge">Go</div>
       <div>
-        <h1>OpenCode Go · 模型价格速查</h1>
-        <p>每 1M tokens 单价与每月使用额度 · 从便宜到贵 · 每次打开自动同步官方最新数据</p>
+        <h1 id="brand-title">OpenCode Go · 模型价格速查</h1>
+        <p id="brand-sub">每 1M tokens 单价与每月使用额度 · 从便宜到贵 · 每次打开自动同步官方最新数据</p>
       </div>
     </div>
     <div class="hactions">
       <span class="status" id="status" title="数据状态"><span class="dot" id="status-dot"></span><span id="status-text">加载中…</span></span>
       <span class="status" id="peak-pill" title="DeepSeek 计费时段"><span class="dot" id="peak-dot"></span><span id="peak-text">…</span><span class="muted" id="peak-next"></span></span>
-      <a class="btn" href="usage.html" title="查看用量">
+      <a class="btn" href="usage.html" title="查看用量" id="usage-btn">
         <svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15v3M12 10v8M17 6v12"/></svg>
-        用量
+        <span id="usage-label">用量</span>
       </a>
       <button class="btn primary" id="refresh">
         <svg viewBox="0 0 24 24"><path d="M21.5 2v6h-6"/><path d="M2.5 22v-6h6"/><path d="M2 12a10 10 0 0 1 17.2-7L21.5 8"/><path d="M22 12a10 10 0 0 1-17.2 7L2.5 16"/></svg>
-        刷新数据
+        <span id="refresh-label">刷新数据</span>
+      </button>
+      <button class="btn" id="lang" title="切换语言 / Switch language">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        <span id="lang-label">EN</span>
       </button>
       <button class="btn" id="theme" title="切换主题">
         <svg viewBox="0 0 24 24" id="theme-ic"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
@@ -304,10 +348,10 @@
   </div>
 
   <section class="stats">
-    <div class="stat"><div class="v" id="st-count">—</div><div class="l">价格档位</div></div>
-    <div class="stat"><div class="v" id="st-series">—</div><div class="l">模型系列</div></div>
-    <div class="stat"><div class="v" id="st-min">—</div><div class="l">最低输入价 / 1M</div></div>
-    <div class="stat"><div class="v" id="st-max">—</div><div class="l">最高输入价 / 1M</div></div>
+    <div class="stat"><div class="v" id="st-count">—</div><div class="l" id="st-count-l">价格档位</div></div>
+    <div class="stat"><div class="v" id="st-series">—</div><div class="l" id="st-series-l">模型系列</div></div>
+    <div class="stat"><div class="v" id="st-min">—</div><div class="l" id="st-min-l">最低输入价 / 1M</div></div>
+    <div class="stat"><div class="v" id="st-max">—</div><div class="l" id="st-max-l">最高输入价 / 1M</div></div>
   </section>
 
   <div class="controls">
@@ -317,10 +361,15 @@
     </div>
     <div id="legend"></div>
     <div id="privacy-legend" title="按隐私筛选"></div>
-    <div class="seg" id="price-mode" title="切换价格显示：单价 vs 单价÷每月额度">
+    <div class="seg" id="price-mode" title="切换价格模式：官方原价 vs 月费折算价（单价÷额度×$10，可与其他平台比价）">
       <button data-m="price" class="on">$/1M</button>
-      <button data-m="ratio">$/1M ÷额度</button>
+      <button data-m="ratio">月费折算</button>
     </div>
+    <div class="seg" id="currency-mode" title="货币单位：美元 / 人民币（按实时汇率换算）">
+      <button data-cur="usd" class="on">$</button>
+      <button data-cur="cny">¥</button>
+    </div>
+    <span class="fx-rate" id="fx-rate" hidden></span>
   </div>
 
   <div class="table-card">
@@ -331,7 +380,8 @@
             <th>#</th>
             <th data-key="series"><button class="th-btn" data-key="series">系列<span class="ic"></span></button></th>
             <th data-key="name"><button class="th-btn" data-key="name">模型<span class="ic"></span></button></th>
-            <th>价格档</th>
+            <th class="col-mid" id="th-id">模型 ID</th>
+            <th id="th-tier">价格档</th>
             <th class="num" data-key="input"><button class="th-btn" data-key="input">输入 $/1M<span class="ic"></span></button></th>
             <th class="num" data-key="output"><button class="th-btn" data-key="output">输出 $/1M<span class="ic"></span></button></th>
             <th class="num col-cr" data-key="cacheRead"><button class="th-btn" data-key="cacheRead">缓存读取<span class="ic"></span></button></th>
@@ -347,22 +397,24 @@
 
   <footer>
     <ul>
-      <li>价格单位为美元 / 每 1M tokens；「—」表示该模型不收取该项费用。</li>
-      <li>DeepSeek 系列高峰时段为周一至周五 01:00–04:00 与 06:00–10:00 UTC（北京时间 09:00–12:00、14:00–18:00），其余时段（含周末）均为低峰价；顶部徽章实时显示当前生效档与切换倒计时。</li>
-      <li id="privacy-note-head" style="display:none">隐私（与官方同步<span id="privacy-note-date"></span>）：</li>
+      <li id="foot-price"></li>
+      <li id="foot-peak"></li>
+      <li id="rate-note"></li>
+      <li id="fx-note" hidden></li>
+      <li id="privacy-note-head" style="display:none"></li>
     </ul>
     <ul id="privacy-notes" style="margin-top:0"></ul>
     <div class="src">
-      <span>数据来源：<a href="https://opencode.ai/docs/zh-cn/go" target="_blank" rel="noopener">OpenCode Go 官方文档</a></span>
-      <span>内置快照：<span id="snapshot-date">2026-09-06</span></span>
-      <span>使用额度可在 <a href="https://opencode.ai/auth" target="_blank" rel="noopener">控制台</a> 查看</span>
+      <span><span id="src-label"></span><a id="doc-link" href="https://opencode.ai/docs/zh-cn/go" target="_blank" rel="noopener"></a></span>
+      <span><span id="snap-label"></span><span id="snapshot-date">2026-09-14</span></span>
+      <span><span id="console-pre"></span><a id="console-link" href="https://opencode.ai/auth" target="_blank" rel="noopener"></a><span id="console-post"></span></span>
     </div>
   </footer>
 
 </div>
 <div id="toast"></div>
 
-<noscript>本页面需要启用 JavaScript 才能获取和渲染价格数据。</noscript>
+<noscript>本页面需要启用 JavaScript 才能获取和渲染价格数据。 / This page requires JavaScript to load and render pricing data.</noscript>
 
 <script>
 'use strict';
@@ -425,9 +477,30 @@ function detectSeries(name) {
   return "其他";
 }
 
+function parseAllowanceCell(cell) {
+  let s = cell == null ? "" : String(cell);
+  s = s.replace(/<del[^>]*>([\s\S]*?)<\/del>/gi, "~~$1~~").replace(/\\/g, "").trim();
+  if (!s || /^[-—–]+$/.test(s)) return { allowance: null, promoOld: null, promoNote: "" };
+  const nums = [];
+  const re = /\d+(?:\.\d+)?/g;
+  let m;
+  while ((m = re.exec(s)) && nums.length < 2) nums.push(parseFloat(m[0]));
+  const isPromo = nums.length === 2 && /~~|4x|结束/.test(s);
+  if (isPromo) {
+    let note = "";
+    const sm = s.match(/<small[^>]*>([\s\S]*?)<\/small>/i);
+    if (sm) note = sm[1].replace(/<[^>]+>/g, "").trim();
+    else note = s.replace(/~~[^~]*~~/g, "").replace(/<br\s*\/?>/gi, "|").replace(/<[^>]+>/g, " ")
+      .replace(/\$[\d.]+/g, " ").replace(/\|/g, " ").replace(/\s+/g, " ").trim();
+    return { allowance: nums[1], promoOld: nums[0], promoNote: note || "限时提升" };
+  }
+  return { allowance: nums.length ? nums[0] : null, promoOld: null, promoNote: "" };
+}
+
 function normalizeRow(raw) {
   const nameCell = raw[0];
   const { name, tier } = splitModelCell(nameCell);
+  const al = parseAllowanceCell(raw[5]);
   return {
     name,
     tier,
@@ -436,7 +509,9 @@ function normalizeRow(raw) {
     output: parseUsd(raw[2]),
     cacheRead: parseUsd(raw[3]),
     cacheWrite: parseUsd(raw[4]),
-    allowance: parseUsd(raw[5])
+    allowance: al.allowance,
+    promoOld: al.promoOld || null,
+    promoNote: al.promoNote || ""
   };
 }
 
@@ -445,7 +520,10 @@ function parseMdPricingTable(md) {
   let head = -1;
   for (let i = 0; i < lines.length; i++) {
     const l = lines[i];
-    if (l.includes("|") && l.includes("输入") && l.includes("输出") && (l.includes("每月限制") || l.includes("使用额度"))) {
+    const hasIn = l.includes("输入") || /\binput\b/i.test(l);
+    const hasOut = l.includes("输出") || /\boutput\b/i.test(l);
+    const hasLimit = l.includes("每月限制") || l.includes("使用额度") || /monthly limit/i.test(l);
+    if (l.includes("|") && hasIn && hasOut && hasLimit) {
       head = i;
       break;
     }
@@ -461,7 +539,7 @@ function parseMdPricingTable(md) {
     const cells = line.replace(/^\|/, "").replace(/\|\s*$/, "").split("|").map(c => c.trim());
     if (cells.length < 6) continue;
     if (cells.every(c => /^:?-{2,}:?$/.test(c) || c === "")) continue;
-    if (!cells[1] || cells[1].includes("输入")) continue;
+    if (!cells[1] || cells[1].includes("输入") || /^input$/i.test(cells[1])) continue;
     rows.push([cells[0], cells[1], cells[2], cells[3], cells[4], cells[5]]);
   }
   return rows.length ? rows.map(normalizeRow) : null;
@@ -475,12 +553,15 @@ function parseHtmlPricingTable(html) {
       if (!firstRow) continue;
       const ths = [...firstRow.children].map(c => (c.textContent || "").trim());
       if (ths.length < 6) continue;
-      if (!ths[1].includes("输入") || !(ths[5].includes("每月限制") || ths[5].includes("使用额度"))) continue;
+      if (!(ths[1].includes("输入") || /^input$/i.test(ths[1]))) continue;
+      if (!(ths[5].includes("每月限制") || ths[5].includes("使用额度") || /monthly limit/i.test(ths[5]))) continue;
       const raw = [];
       for (const tr of tb.querySelectorAll("tr")) {
-        const td = [...tr.children].map(c => (c.textContent || "").trim());
-        if (td.length < 6 || td[1].includes("输入")) continue;
-        raw.push([td[0], td[1], td[2], td[3], td[4], td[5]]);
+        const cells = [...tr.children];
+        const td = cells.map(c => (c.textContent || "").trim());
+        if (td.length < 6 || td[1].includes("输入") || /^input$/i.test(td[1])) continue;
+        const allowHtml = cells[5] ? (cells[5].innerHTML || td[5]) : td[5];
+        raw.push([td[0], td[1], td[2], td[3], td[4], allowHtml]);
       }
       if (raw.length) return raw.map(normalizeRow);
     }
@@ -508,7 +589,9 @@ function parsePrivacySection(md) {
   let head = -1;
   for (let i = 0; i < lines.length; i++) {
     const l = lines[i];
-    if (l.includes("|") && l.includes("模型训练") && l.includes("数据留存")) { head = i; break; }
+    const hasTrain = l.includes("模型训练") || /model training/i.test(l);
+    const hasRetain = l.includes("数据留存") || /data retention/i.test(l);
+    if (l.includes("|") && hasTrain && hasRetain) { head = i; break; }
   }
   if (head === -1) return null;
   const table = [];
@@ -518,7 +601,7 @@ function parsePrivacySection(md) {
     const cells = line.replace(/^\|/, "").replace(/\|\s*$/, "").split("|").map(c => c.trim());
     if (cells.length < 3) continue;
     if (cells.every(c => /^:?-{2,}:?$/.test(c) || c === "")) continue;
-    if (cells[1].includes("模型训练")) continue;
+    if (cells[1].includes("模型训练") || /model training/i.test(cells[1])) continue;
     table.push({ model: cells[0], train: cells[1], retain: cells[2] });
   }
   if (!table.length) return null;
@@ -526,7 +609,7 @@ function parsePrivacySection(md) {
   let inNotes = false;
   for (let i = head + 1; i < lines.length; i++) {
     const line = lines[i];
-    if (/^##\s+目标/.test(line.trim())) break;
+    if (/^##\s+(目标|Goals)/.test(line.trim())) break;
     if (!inNotes) {
       if (/^\s*-\s*\*\*/.test(line) && table.length && line.includes("**") && !line.includes("|")) inNotes = true;
       else continue;
@@ -545,11 +628,11 @@ function parseHtmlPrivacySection(html) {
       const firstRow = tb.querySelector("tr");
       if (!firstRow) continue;
       const ths = [...firstRow.children].map(c => (c.textContent || "").trim());
-      if (ths.length < 3 || !ths.join("").includes("模型训练")) continue;
+      if (ths.length < 3 || !(ths.join("").includes("模型训练") || /model training/i.test(ths.join(" ")))) continue;
       const table = [];
       for (const tr of tb.querySelectorAll("tr")) {
         const td = [...tr.children].map(c => (c.textContent || "").trim());
-        if (td.length < 3 || td[1].includes("模型训练")) continue;
+        if (td.length < 3 || td[1].includes("模型训练") || /model training/i.test(td[1])) continue;
         table.push({ model: td[0], train: td[1], retain: td[2] });
       }
       if (table.length) {
@@ -582,26 +665,93 @@ function mergePrivacy(rows, priv) {
     const retain = hit ? String(hit.retain || "").trim() : "";
     r.training = /^(是|yes|y)\b/i.test(train) || train === "是";
     r.retain = retain || "";
-    r.retainDays = /^\d+/.test(retain) ? parseInt(retain, 10) : (retain === "0 天" || retain === "0天" ? 0 : null);
+    const dm = String(retain).match(/^(\d+)/);
+    r.retainDays = dm ? parseInt(dm[1], 10) : null;
+    r.notZdr = /非\s*ZDR|not\s*ZDR/i.test(String(retain));
   }
   return rows;
 }
 
 function privacyRank(r) {
   if (r.training) return 0;
-  if (r.retain && r.retain !== "0 天" && r.retain !== "0天") return 1;
+  if (r.retainDays != null && r.retainDays > 0) return 1;
+  if (r.notZdr) return 1;
   return 2;
 }
 
-function dataKey(rows) {
-  return JSON.stringify(rows.map(r => [r.name, r.tier, r.input, r.output, r.cacheRead, r.cacheWrite, r.allowance, r.training ? 1 : 0, r.retain || ""]));
+function stripTierSuffix(name) {
+  return String(name || "").replace(/\[[^\]]*\]\([^)]*\)/g, "").replace(/\([^)]*\)/g, "").trim();
 }
 
-function tierLabel(t) {
-  if (!t) return "";
-  const s = String(t);
-  if (/off-peak/i.test(s)) return "低峰";
-  if (/peak/i.test(s)) return "高峰";
+function parseModelIdTable(md) {
+  const lines = String(md || "").split(/\r?\n/);
+  let head = -1, idCol = -1, nameCol = 0;
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i];
+    if (!l.includes("|")) continue;
+    const probe = l.replace(/^\|/, "").replace(/\|\s*$/, "").split("|").map(c => c.trim());
+    const col = probe.findIndex(c => c.includes("模型 ID") || c.includes("模型ID") || /model\s*id/i.test(c));
+    if (col !== -1) { head = i; idCol = col; nameCol = 0; break; }
+  }
+  if (head === -1) return null;
+  const map = {};
+  for (let i = head + 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line.startsWith("|")) { if (Object.keys(map).length) break; continue; }
+    const cells = line.replace(/^\|/, "").replace(/\|\s*$/, "").split("|").map(c => c.trim());
+    if (cells.length <= idCol) continue;
+    if (cells.every(c => /^:?-{2,}:?$/.test(c) || c === "")) continue;
+    const name = cells[nameCol], id = cells[idCol];
+    if (!name || !id || id.includes("模型 ID") || /^model\s*id$/i.test(id)) continue;
+    map[name] = id;
+  }
+  return Object.keys(map).length ? map : null;
+}
+
+function parseHtmlModelIdTable(html) {
+  try {
+    const doc = new DOMParser().parseFromString(String(html || ""), "text/html");
+    for (const tb of doc.querySelectorAll("table")) {
+      const firstRow = tb.querySelector("tr");
+      if (!firstRow) continue;
+      const ths = [...firstRow.children].map(c => (c.textContent || "").trim());
+      const idCol = ths.findIndex(c => c.includes("模型 ID") || c.includes("模型ID") || /model\s*id/i.test(c));
+      if (idCol === -1) continue;
+      const map = {};
+      for (const tr of tb.querySelectorAll("tr")) {
+        const td = [...tr.children].map(c => (c.textContent || "").trim());
+        if (td.length <= idCol || td[idCol].includes("模型 ID") || /^model\s*id$/i.test(td[idCol])) continue;
+        if (td[0] && td[idCol]) map[td[0]] = td[idCol];
+      }
+      if (Object.keys(map).length) return map;
+    }
+  } catch (e) { /* fallthrough */ }
+  return null;
+}
+
+function mergeModelIds(rows, map) {
+  const norm = new Map();
+  if (map) {
+    for (const [name, id] of Object.entries(map)) norm.set(normPrivacyName(name), id);
+  }
+  for (const r of rows) {
+    const base = stripTierSuffix(r.name);
+    const id = norm.get(normPrivacyName(base))
+      || norm.get(normPrivacyName(base.replace(/spark\s*1\.\d/i, "spark")));
+    r.modelId = id || null;
+  }
+  return rows;
+}
+
+function dataKey(rows) {
+  return JSON.stringify(rows.map(r => [r.name, r.tier, r.input, r.output, r.cacheRead, r.cacheWrite, r.allowance, r.promoOld || 0, r.training ? 1 : 0, r.retain || ""]));
+}
+
+function tierLabel(tier) {
+  if (!tier) return "";
+  const s = String(tier);
+  if (/off-peak/i.test(s)) return t("tierOff");
+  if (/peak/i.test(s)) return t("tierPeak");
   return s;
 }
 
@@ -627,9 +777,10 @@ function nextDeepSeekTransition(d) {
 function fmtCountdown(ms) {
   const mins = Math.max(0, Math.ceil(ms / 60000));
   const dd = Math.floor(mins / 1440), h = Math.floor((mins % 1440) / 60), m = mins % 60;
-  if (dd > 0) return dd + "天" + (h > 0 ? h + "小时" : "") + "后切换";
-  if (h > 0) return h + "小时" + (m > 0 ? m + "分" : "") + "后切换";
-  return m + "分钟后切换";
+  const zh = state.lang === "zh";
+  if (dd > 0) return t("countdownDays", { d: dd, h: h > 0 ? h + (zh ? "小时" : "h") : "" });
+  if (h > 0) return t("countdownHours", { h: h, m: m > 0 ? m + (zh ? "分" : "m") : "" });
+  return t("countdownMins", { m: m });
 }
 /*__PARSE_END__*/
 
@@ -638,7 +789,7 @@ const SNAPSHOT_RAW = [
   ["Grok 4.6 (> 200K tokens)", 4.00, 12.00, 1.00, null, 15],
   ["GPT 5.6 Luna (≤ 272K tokens)", 0.20, 1.20, 0.02, 0.25, 15],
   ["GPT 5.6 Luna (> 272K tokens)", 0.40, 1.80, 0.04, 0.50, 15],
-  ["GLM-5.3-Flash", 0.15, 0.50, 0.03, null, 15],
+  ["GLM-5.3-Flash", 0.15, 0.50, 0.03, null, 60],
   ["GLM-5.3", 1.40, 4.40, 0.26, null, 15],
   ["GLM-5.2", 1.40, 4.40, 0.26, null, 60],
   ["GLM-5.1", 1.40, 4.40, 0.26, null, 60],
@@ -660,15 +811,16 @@ const SNAPSHOT_RAW = [
   ["Qwen3.7 Plus (> 256K tokens)", 1.20, 4.80, 0.12, 1.50, 60],
   ["Qwen3.6 Plus (≤ 256K tokens)", 0.50, 3.00, 0.05, 0.625, 60],
   ["Qwen3.6 Plus (> 256K tokens)", 2.00, 6.00, 0.20, 2.50, 60],
+  ["DeepSeek V4.1 Flash (Off-Peak)", 0.15, 0.60, 0.003, null, [60, 15, "4x · 9 月 20 日结束"]],
+  ["DeepSeek V4.1 Flash (Peak)", 0.30, 1.20, 0.006, null, [60, 15, "4x · 9 月 20 日结束"]],
   ["DeepSeek V4 Pro (Off-Peak)", 0.66, 1.98, 0.022, null, 15],
   ["DeepSeek V4 Pro (Peak)", 1.32, 3.96, 0.044, null, 15],
-  ["DeepSeek V4 Flash (Off-Peak)", 0.22, 0.66, 0.007, null, 30],
-  ["DeepSeek V4 Flash (Peak)", 0.44, 1.32, 0.014, null, 30],
-  ["DeepSeek V4 Flash Vision Exp (Off-Peak)", 0.22, 0.66, 0.007, null, 15],
-  ["DeepSeek V4 Flash Vision Exp (Peak)", 0.44, 1.32, 0.014, null, 15],
+  ["DeepSeek V4 Flash (Off-Peak)", 0.15, 0.60, 0.003, null, 30],
+  ["DeepSeek V4 Flash (Peak)", 0.30, 1.20, 0.006, null, 30],
+  ["DeepSeek V4 Flash Vision Exp (Off-Peak)", 0.15, 0.60, 0.003, null, 15],
+  ["DeepSeek V4 Flash Vision Exp (Peak)", 0.30, 1.20, 0.006, null, 15],
   ["Hy4 preview", 0.834, 2.501, 0.042, null, 30],
-  ["Hy3", 0.14, 0.58, 0.035, null, 60],
-  ["Omen Alpha", 0.20, 0.66, 0.04, null, 100]
+  ["Hy3", 0.14, 0.58, 0.035, null, 60]
 ];
 
 const PRIVACY_SNAPSHOT_TABLE = [
@@ -693,41 +845,97 @@ const PRIVACY_SNAPSHOT_TABLE = [
   ["MiniMax M2.7", "不使用", "0 天"],
   ["Muse Spark 1.3 Contributor", "是", "非 ZDR"],
   ["Muse Spark 1.2 Contributor", "是", "非 ZDR"],
+  ["DeepSeek V4.1 Flash", "不使用", "0 天"],
   ["DeepSeek V4 Pro", "不使用", "0 天"],
   ["DeepSeek V4 Flash", "不使用", "0 天"],
   ["DeepSeek V4 Flash Vision Exp", "不使用", "0 天"],
   ["Hy4 preview", "不使用", "0 天"],
-  ["Hy3", "不使用", "0 天"],
-  ["Omen Alpha", "不使用", "0 天"]
+  ["Hy3", "不使用", "0 天"]
 ];
 const PRIVACY_NOTES_SNAPSHOT = [
   { model: "Grok 4.6", text: "ZDR 会禁用依赖所存储数据的重要 API 功能，包括有状态的 Responses API、Files and Collections 和 Batch API。" },
   { model: "GPT 5.6 Luna", text: "所有 API 功能的使用都会生成滥用监控日志，并最多保留 30 天。" },
   { model: "Muse Spark 1.3 Contributor", text: "以允许使用你的提示词和补全结果训练未来的 Meta 模型为交换，token 价格可获得大幅折扣。仅在 Meta 的地理使用政策允许的地区提供。" },
   { model: "Muse Spark 1.2 Contributor", text: "以允许使用你的提示词和补全结果训练未来的 Meta 模型为交换，token 价格可获得大幅折扣。仅在 Meta 的地理使用政策允许的地区提供。" },
-  { model: "DeepSeek V4 Flash", text: "ZDR 协议每月续签。当前协议有效期至 2026 年 9 月 30 日。" }
+  { model: "DeepSeek", text: "ZDR 协议每月续签。当前协议有效期至 2026 年 9 月 30 日。" }
+];
+const PRIVACY_NOTES_SNAPSHOT_EN = [
+  { model: "Grok 4.6", text: "ZDR disables important API features that depend on stored data, including the stateful Responses API, Files and Collections, and the Batch API." },
+  { model: "GPT 5.6 Luna", text: "Abuse monitoring logs are generated for all API feature usage and retained for up to 30 days." },
+  { model: "Muse Spark 1.3 Contributor", text: "Heavily discounted token pricing in exchange for permission to use your prompts and completions to train future Meta models. Availability is limited to regions permitted by Meta's Geographic Use Policy." },
+  { model: "Muse Spark 1.2 Contributor", text: "Heavily discounted token pricing in exchange for permission to use your prompts and completions to train future Meta models. Availability is limited to regions permitted by Meta's Geographic Use Policy." },
+  { model: "DeepSeek", text: "ZDR agreement is renewed monthly. The current agreement is valid through September 30, 2026." }
 ];
 
-const SNAPSHOT = { date: "2026-09-06", rows: mergePrivacy(SNAPSHOT_RAW.map(normalizeRow), { table: PRIVACY_SNAPSHOT_TABLE.map(r => ({ model: r[0], train: r[1], retain: r[2] })) }) };
+const MODEL_ID_SNAPSHOT = {
+  "Grok 4.6": "grok-4.6",
+  "GPT 5.6 Luna": "gpt-5.6-luna",
+  "GLM-5.3-Flash": "glm-5.3-flash",
+  "GLM-5.3": "glm-5.3",
+  "GLM-5.2": "glm-5.2",
+  "GLM-5.1": "glm-5.1",
+  "Kimi K3": "kimi-k3",
+  "Kimi K2.7 Code": "kimi-k2.7-code",
+  "Kimi K2.6": "kimi-k2.6",
+  "LongCat-2.0": "longcat-2.0",
+  "DeepSeek V4.1 Flash": "deepseek-v4.1-flash",
+  "DeepSeek V4 Pro": "deepseek-v4-pro",
+  "DeepSeek V4 Flash": "deepseek-v4-flash",
+  "DeepSeek V4 Flash Vision Exp": "deepseek-v4-flash-vision-exp",
+  "MiMo-V2.5": "mimo-v2.5",
+  "MiMo-V2.5-Pro": "mimo-v2.5-pro",
+  "MiniMax M3": "minimax-m3",
+  "MiniMax M2.7": "minimax-m2.7",
+  "MiniMax M2.5": "minimax-m2.5",
+  "Muse Spark 1.3 Contributor": "muse-spark-1.3-contributor",
+  "Muse Spark 1.2 Contributor": "muse-spark-1.2-contributor",
+  "Qwen3.8 Max": "qwen3.8-max",
+  "Qwen3.8 Flash": "qwen3.8-flash",
+  "Qwen3.7 Max": "qwen3.7-max",
+  "Qwen3.7 Plus": "qwen3.7-plus",
+  "Qwen3.6 Plus": "qwen3.6-plus",
+  "Hy4 preview": "hy4-preview",
+  "Hy3": "hy3"
+};
+
+const SNAPSHOT = {
+  date: "2026-09-14",
+  rows: (() => {
+    const rows = SNAPSHOT_RAW.map(r => {
+      const row = normalizeRow(r);
+      if (Array.isArray(r[5])) {
+        row.allowance = r[5][0];
+        row.promoOld = r[5][1];
+        row.promoNote = r[5][2];
+      }
+      return row;
+    });
+    return mergeModelIds(mergePrivacy(rows, { table: PRIVACY_SNAPSHOT_TABLE.map(r => ({ model: r[0], train: r[1], retain: r[2] })) }), MODEL_ID_SNAPSHOT);
+  })()
+};
 
 const MDX_URL = "https://raw.githubusercontent.com/anomalyco/opencode/dev/packages/web/src/content/docs/zh-cn/go.mdx";
 const MDX_MIRROR_URL = "https://cdn.jsdelivr.net/gh/anomalyco/opencode@dev/packages/web/src/content/docs/zh-cn/go.mdx";
 const SOURCES = [
-  { label: "GitHub 源文件", type: "mdx", url: MDX_URL },
-  { label: "jsDelivr 镜像", type: "mdx", url: MDX_MIRROR_URL },
-  { label: "ghproxy 镜像", type: "mdx", url: "https://ghproxy.net/" + MDX_URL },
-  { label: "gh-proxy 镜像", type: "mdx", url: "https://gh-proxy.com/" + MDX_URL },
-  { label: "ghfast 镜像", type: "mdx", url: "https://ghfast.top/" + MDX_URL }
+  { key: "github", type: "mdx", url: MDX_URL },
+  { key: "jsdelivr", type: "mdx", url: MDX_MIRROR_URL },
+  { key: "ghproxy", type: "mdx", url: "https://ghproxy.net/" + MDX_URL },
+  { key: "ghproxy2", type: "mdx", url: "https://gh-proxy.com/" + MDX_URL },
+  { key: "ghfast", type: "mdx", url: "https://ghfast.top/" + MDX_URL }
 ];
 
-const LS_CACHE = "opengo-pricing-v2";
+const LS_CACHE = "opengo-pricing-v3";
 const LS_THEME = "opengo-theme";
 const LS_RATIO = "opengo-ratio-mode";
+const LS_CUR = "opengo-currency";
+const LS_RATE = "opengo-usd-cny-rate-v1";
+const LS_LANG = "opengo-lang";
 
 const state = {
+  lang: "zh",
   rows: [],
   privacyNotes: [],
-  sourceLabel: "",
+  sourceKey: "snapshot",
   fetchedAt: "",
   online: false,
   peak: undefined,
@@ -735,12 +943,165 @@ const state = {
   sortDir: 1,
   query: "",
   ratioMode: false,
+  currency: "usd",
+  rate: null,
   privacyFilter: "all",
   off: new Set()
 };
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+/* ---------- i18n ---------- */
+const MONTHS_EN = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const I18N = {
+  zh: {
+    htmlTitle: "OpenCode Go · 模型价格速查",
+    brandTitle: "OpenCode Go · 模型价格速查",
+    brandSub: "每 1M tokens 单价与每月使用额度 · 从便宜到贵 · 每次打开自动同步官方最新数据",
+    btnUsage: "用量", btnUsageTitle: "查看用量",
+    btnRefresh: "刷新数据",
+    btnThemeLight: "浅色", btnThemeDark: "深色", btnThemeTitle: "切换主题",
+    btnLangTitle: "切换语言 / Switch language",
+    statusTitle: "数据状态",
+    statusLoading: "加载中…",
+    offlineSuffix: "（离线）",
+    srcGithub: "GitHub 源文件", srcJsdelivr: "jsDelivr 镜像", srcGhproxy: "ghproxy 镜像", srcGhproxy2: "gh-proxy 镜像", srcGhfast: "ghfast 镜像",
+    srcCache: "本地缓存", srcSnapshot: "内置快照",
+    peakTitle: "DeepSeek 计费时段",
+    peakHigh: "DeepSeek 高峰价", peakLow: "DeepSeek 低峰价",
+    peakPillHigh: "高峰价生效中。高峰时段为 UTC 周一至周五 01:00–04:00、06:00–10:00（北京时间 09:00–12:00、14:00–18:00），其余时段（含周末）均为低峰价。",
+    peakPillLow: "低峰价生效中。高峰时段为 UTC 周一至周五 01:00–04:00、06:00–10:00（北京时间 09:00–12:00、14:00–18:00），其余时段（含周末）均为低峰价。",
+    countdownDays: "{d}天{h}后切换", countdownHours: "{h}小时{m}后切换", countdownMins: "{m}分钟后切换",
+    stCount: "价格档位", stSeries: "模型系列",
+    stMinPrice: "最低输入价 / 1M", stMaxPrice: "最高输入价 / 1M",
+    stMinRatio: "最低折算价 / 1M", stMaxRatio: "最高折算价 / 1M",
+    searchPh: "搜索模型、系列或价格档…",
+    legendAll: "全部",
+    privacyLegendTitle: "按隐私筛选",
+    privAll: "隐私:全部({n})", privTrain: "⚠会训练({n})", privRetain: "有留存({n})", privZero: "零留存({n})",
+    priceModeTitle: "切换价格模式：官方原价 vs 月费折算价（单价÷额度×$10，可与其他平台比价）",
+    ratioBtn: "月费折算",
+    currencyTitle: "货币单位：美元 / 人民币（按实时汇率换算）",
+    thSeries: "系列", thName: "模型", thId: "模型 ID", thTier: "价格档", thPrivacy: "隐私",
+    thInput: "输入 {sym}/1M", thOutput: "输出 {sym}/1M", thCacheRead: "缓存读取", thCacheWrite: "缓存写入",
+    thInputRatio: "折算 {sym}/1M", thOutputRatio: "输出折算", thCacheReadRatio: "缓存读折算", thCacheWriteRatio: "缓存写折算",
+    thAllow: "每月使用额度",
+    ratioColTitle: "月费折算 = 单价 ÷ 每月额度 × $10 月费，可与按量付费平台比价；官方原价见数值悬停",
+    ratioTip: "月费折算：${v}/1M ÷ ${a} 额度 × ${fee} 月费", ratioTipCny: "，按 1$ ≈ {rate}¥ 换算",
+    otherSeries: "其他",
+    tierOff: "低峰", tierPeak: "高峰", liveTag: "当前",
+    copyIdTitle: "复制模型 ID {id}", copied: "已复制模型 ID：{id}", copyFailed: "复制失败，请手动选择复制",
+    emptyTable: "没有匹配的模型，试试调整搜索或系列筛选",
+    trainBadge: "⚠训练", trainBadgeTitle: "该模型会使用你的提示词/补全训练未来模型",
+    zeroRetention: "零留存", zeroRetentionTitle: "数据留存 0 天",
+    retentionTitle: "数据留存：{ret}", days: "{n} 天", notZdr: "非 ZDR",
+    promoOldTitle: "限时促销前的原额度", promoDefault: "限时提升", promoBadgeTitle: "限时额度提升，{note}",
+    bannerOffline: "无法连接数据源，当前显示「{src}」数据，稍后可点击「刷新数据」重试。",
+    toastFailed: "自动更新失败，已保留当前数据", toastFresh: "价格数据已是最新", toastUpdated: "已自动更新至最新价格数据",
+    rateNote: "月费折算：单价 ÷ 每月额度 × $10（Go 月费），可取消费满时的等效单价，直接与按量付费平台比价。",
+    fxNote: "人民币折算已开启：按 1$ ≈ {rate}¥ 换算（{src} · {date} · {live}）。",
+    fxRate: "汇率 1$ ≈ {rate}¥",
+    fxRateTitle: "人民币折算中的换算汇率：1$ ≈ {rate}¥（{src} · {date} · {live}）",
+    rateLive: "实时拉取", rateSnapshot: "内置快照",
+    footPrice: "价格单位默认美元 / 每 1M tokens，切到 ¥ 后按实时汇率换算；「—」表示该模型不收取该项费用。",
+    footPeak: "DeepSeek 系列高峰时段为周一至周五 01:00–04:00 与 06:00–10:00 UTC（北京时间 09:00–12:00、14:00–18:00），其余时段（含周末）均为低峰价；顶部徽章实时显示当前生效档与切换倒计时。",
+    privacyHeadLive: "隐私（与官方同步 · 官方实时）：",
+    privacyHeadSnapshot: "隐私（与官方同步 · 内置快照）：",
+    notesSep: "：",
+    srcLabel: "数据来源：", docLink: "OpenCode Go 官方文档",
+    snapLabel: "内置快照：",
+    consolePre: "使用额度可在 ", consoleLink: "控制台", consolePost: " 查看"
+  },
+  en: {
+    htmlTitle: "OpenCode Go · Model Pricing Guide",
+    brandTitle: "OpenCode Go · Model Pricing Guide",
+    brandSub: "Per-1M-token prices & monthly quotas · sorted cheap to expensive · auto-synced from the official docs on every visit",
+    btnUsage: "Usage", btnUsageTitle: "View usage",
+    btnRefresh: "Refresh",
+    btnThemeLight: "Light", btnThemeDark: "Dark", btnThemeTitle: "Toggle theme",
+    btnLangTitle: "切换语言 / Switch language",
+    statusTitle: "Data status",
+    statusLoading: "Loading…",
+    offlineSuffix: " (offline)",
+    srcGithub: "GitHub raw", srcJsdelivr: "jsDelivr mirror", srcGhproxy: "ghproxy mirror", srcGhproxy2: "gh-proxy mirror", srcGhfast: "ghfast mirror",
+    srcCache: "Local cache", srcSnapshot: "Built-in snapshot",
+    peakTitle: "DeepSeek billing window",
+    peakHigh: "DeepSeek peak price", peakLow: "DeepSeek off-peak price",
+    peakPillHigh: "Peak pricing is active. Peak hours are 01:00–04:00 and 06:00–10:00 UTC, Mon–Fri (09:00–12:00 & 14:00–18:00 Beijing time); all other hours, including weekends, are off-peak.",
+    peakPillLow: "Off-peak pricing is active. Peak hours are 01:00–04:00 and 06:00–10:00 UTC, Mon–Fri (09:00–12:00 & 14:00–18:00 Beijing time); all other hours, including weekends, are off-peak.",
+    countdownDays: "switches in {d}d {h}", countdownHours: "switches in {h}h {m}", countdownMins: "switches in {m}m",
+    stCount: "Price tiers", stSeries: "Model series",
+    stMinPrice: "Lowest input / 1M", stMaxPrice: "Highest input / 1M",
+    stMinRatio: "Lowest converted / 1M", stMaxRatio: "Highest converted / 1M",
+    searchPh: "Search models, series or tiers…",
+    legendAll: "All",
+    privacyLegendTitle: "Filter by privacy",
+    privAll: "Privacy: all ({n})", privTrain: "⚠ Trains ({n})", privRetain: "Retained ({n})", privZero: "Zero retention ({n})",
+    priceModeTitle: "Price mode: official list price vs Go monthly-fee equivalent (price ÷ quota × $10; comparable with pay-as-you-go platforms)",
+    ratioBtn: "Fee-equivalent",
+    currencyTitle: "Currency: USD / CNY (live FX conversion)",
+    thSeries: "Series", thName: "Model", thId: "Model ID", thTier: "Tier", thPrivacy: "Privacy",
+    thInput: "Input {sym}/1M", thOutput: "Output {sym}/1M", thCacheRead: "Cache read", thCacheWrite: "Cache write",
+    thInputRatio: "Conv. {sym}/1M", thOutputRatio: "Output conv.", thCacheReadRatio: "Cache read conv.", thCacheWriteRatio: "Cache write conv.",
+    thAllow: "Monthly quota",
+    ratioColTitle: "Fee-equivalent = list price ÷ monthly quota × $10 Go fee; comparable with pay-as-you-go platforms. Hover a value for the official list price.",
+    ratioTip: "Fee-equivalent: ${v}/1M ÷ ${a} quota × ${fee} monthly fee", ratioTipCny: ", converted at 1$ ≈ {rate}¥",
+    otherSeries: "Other",
+    tierOff: "Off-Peak", tierPeak: "Peak", liveTag: "live",
+    copyIdTitle: "Copy model ID {id}", copied: "Model ID copied: {id}", copyFailed: "Copy failed — please copy manually",
+    emptyTable: "No matching models — try adjusting the search or series filters",
+    trainBadge: "⚠ Trains", trainBadgeTitle: "This model may train future models on your prompts/completions",
+    zeroRetention: "Zero retention", zeroRetentionTitle: "0-day data retention",
+    retentionTitle: "Data retention: {ret}", days: "{n} days", notZdr: "Not ZDR",
+    promoOldTitle: "Quota before the limited-time boost", promoDefault: "Limited-time boost", promoBadgeTitle: "Limited-time quota boost ({note})",
+    bannerOffline: "Could not reach any data source — showing “{src}” data. Click “Refresh” to retry.",
+    toastFailed: "Auto-update failed — keeping current data", toastFresh: "Pricing data is up to date", toastUpdated: "Updated to the latest pricing data",
+    rateNote: "Fee-equivalent: list price ÷ monthly quota × $10 (Go monthly fee) — the effective unit price when the full quota is used, comparable with pay-as-you-go platforms.",
+    fxNote: "CNY conversion is on: converted at 1$ ≈ {rate}¥ ({src} · {date} · {live}).",
+    fxRate: "FX 1$ ≈ {rate}¥",
+    fxRateTitle: "CNY conversion rate: 1$ ≈ {rate}¥ ({src} · {date} · {live})",
+    rateLive: "live", rateSnapshot: "built-in snapshot",
+    footPrice: "Prices are shown in USD per 1M tokens by default; switch to ¥ for live FX conversion. “—” means the model has no charge for that item.",
+    footPeak: "DeepSeek peak hours are 01:00–04:00 and 06:00–10:00 UTC, Mon–Fri (09:00–12:00 & 14:00–18:00 Beijing time); all other hours, including weekends, are off-peak. The header badge shows the currently active tier and switch countdown.",
+    privacyHeadLive: "Privacy (synced from the official docs · live):",
+    privacyHeadSnapshot: "Privacy (synced from the official docs · built-in snapshot):",
+    notesSep: ": ",
+    srcLabel: "Source: ", docLink: "OpenCode Go official docs",
+    snapLabel: "Built-in snapshot: ",
+    consolePre: "Check your usage in the ", consoleLink: "console", consolePost: ""
+  }
+};
+
+function t(key, vars) {
+  const dict = I18N[state.lang] || I18N.zh;
+  let s = Object.prototype.hasOwnProperty.call(dict, key) ? dict[key] : (I18N.zh[key] !== undefined ? I18N.zh[key] : key);
+  if (vars) for (const k of Object.keys(vars)) s = s.split("{" + k + "}").join(String(vars[k]));
+  return s;
+}
+
+function docUrl() {
+  return state.lang === "zh" ? "https://opencode.ai/docs/zh-cn/go" : "https://opencode.ai/docs/go";
+}
+
+function localeTag() {
+  return state.lang === "zh" ? "zh-CN" : "en-GB";
+}
+
+function seriesLabel(s) {
+  return s === "其他" ? t("otherSeries") : s;
+}
+
+function promoNoteLabel(note) {
+  const s = String(note || "");
+  if (state.lang === "zh" || !s) return s;
+  if (s === "限时提升") return t("promoDefault");
+  const m = s.match(/^(\S+)\s*·\s*(\d+)\s*月\s*(\d+)\s*日结束$/);
+  if (m) return m[1] + " · ends " + (MONTHS_EN[parseInt(m[2], 10) - 1] || m[2]) + " " + m[3];
+  return s;
+}
+
+/* ---------- end i18n ---------- */
 
 function hexToRgb(hex) {
   const h = hex.replace("#", "");
@@ -755,24 +1116,47 @@ function colorOf(series) {
   return SERIES_COLORS[series] || "#94a3b8";
 }
 const PRICE_FRAC = 6; // 小数部分统一占位到 6 位（不足补不可见 0），小数点纵向对齐
-function fmtPrice(v, allowance) {
-  if (v == null) return '<span class="muted">—</span>';
-  if (state.ratioMode) {
-    if (allowance == null || !allowance) return '<span class="muted">—</span>';
-    const q = v / allowance;
-    return '<span title="原 $' + v + " ÷ $" + allowance + '">$' + q.toFixed(PRICE_FRAC) + "</span>";
-  }
-  const s = Number.isInteger(v) ? v.toFixed(2) : String(v);
+const MONTHLY_FEE = 10; // Go 月费 $10，折算按此计算
+const RATE_SNAPSHOT = { value: 6.7082, date: "2026-09-11", source: "内置快照", fetchedAt: 0 };
+
+function rateNow() {
+  return (state.rate && state.rate.value) || RATE_SNAPSHOT.value;
+}
+function curSym() {
+  return state.currency === "cny" ? "¥" : "$";
+}
+function convCur(v) {
+  return state.currency === "cny" ? v * rateNow() : v;
+}
+function fmtPlainNum(v) {
+  if (Number.isInteger(v)) return v.toFixed(2);
+  const s = String(Number(v.toPrecision(7)));
+  const dot = s.indexOf(".");
+  const frac = dot === -1 ? 0 : s.length - dot - 1;
+  return frac > PRICE_FRAC ? Number(v.toFixed(PRICE_FRAC)).toString() : s;
+}
+function padZero(s) {
   const dot = s.indexOf(".");
   const fracLen = dot === -1 ? 0 : s.length - dot - 1;
-  const pad = fracLen < PRICE_FRAC ? '<span class="padzero">' + "0".repeat(PRICE_FRAC - fracLen) + "</span>" : "";
-  return "$" + s + pad;
+  return fracLen < PRICE_FRAC ? s + '<span class="padzero">' + "0".repeat(PRICE_FRAC - fracLen) + "</span>" : s;
+}
+function fmtPrice(v, allowance) {
+  if (v == null) return '<span class="muted">—</span>';
+  const sym = curSym();
+  if (state.ratioMode) {
+    if (allowance == null || !allowance) return '<span class="muted">—</span>';
+    const q = convCur(v / allowance * MONTHLY_FEE);
+    const tip = t("ratioTip", { v: v, a: allowance, fee: MONTHLY_FEE })
+      + (state.currency === "cny" ? t("ratioTipCny", { rate: rateNow().toFixed(4) }) : "");
+    return '<span title="' + esc(tip) + '">' + sym + q.toFixed(4) + "</span>";
+  }
+  return sym + padZero(fmtPlainNum(convCur(v)));
 }
 function effVal(v, allowance) {
   if (v == null) return null;
   if (state.ratioMode && typeof v === "number") {
     if (allowance == null || !allowance) return null;
-    return v / allowance;
+    return v / allowance * MONTHLY_FEE;
   }
   return v;
 }
@@ -795,7 +1179,7 @@ function toast(msg) {
 
 function timeStr(iso) {
   try {
-    return new Date(iso).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    return new Date(iso).toLocaleTimeString(localeTag(), { hour: "2-digit", minute: "2-digit", second: "2-digit" });
   } catch (e) { return ""; }
 }
 
@@ -806,25 +1190,32 @@ function updatePeakStatus() {
   const pill = $("#peak-pill");
   if (pill) {
     $("#peak-dot").className = "dot " + (peak ? "warn" : "ok") + " pulse";
-    $("#peak-text").textContent = peak ? "DeepSeek 高峰价" : "DeepSeek 低峰价";
+    $("#peak-text").textContent = peak ? t("peakHigh") : t("peakLow");
     $("#peak-next").textContent = next ? "· " + fmtCountdown(next - now) : "";
-    pill.title = (peak ? "高峰价生效中" : "低峰价生效中")
-      + "。高峰时段为 UTC 周一至周五 01:00–04:00、06:00–10:00（北京时间 09:00–12:00、14:00–18:00），其余时段（含周末）均为低峰价。";
+    pill.title = peak ? t("peakPillHigh") : t("peakPillLow");
   }
   const changed = state.peak !== undefined && state.peak !== peak;
   state.peak = peak;
   if (changed && state.rows.length) renderTable();
 }
 
-function setStatus(label, when, online) {
-  state.sourceLabel = label;
+function statusLabel(key) {
+  const map = {
+    github: "srcGithub", jsdelivr: "srcJsdelivr", ghproxy: "srcGhproxy",
+    ghproxy2: "srcGhproxy2", ghfast: "srcGhfast", cache: "srcCache", snapshot: "srcSnapshot"
+  };
+  return t(map[key] || "srcSnapshot");
+}
+
+function setStatus(key, when, online) {
+  state.sourceKey = key;
   state.fetchedAt = when;
   state.online = online;
   const dot = $("#status-dot");
   dot.className = "dot " + (online ? "ok" : "warn");
-  const srcText = online ? label : label + "（离线）";
-  const t = when ? (online ? timeStr(when) : when) : "";
-  $("#status-text").textContent = t ? srcText + " · " + t : srcText;
+  const srcText = statusLabel(key) + (online ? "" : t("offlineSuffix"));
+  const ts = when ? (online ? timeStr(when) : when) : "";
+  $("#status-text").textContent = ts ? srcText + " · " + ts : srcText;
 }
 
 function setBanner(show, text) {
@@ -839,20 +1230,23 @@ function setRefreshing(on) {
   btn.disabled = on;
 }
 
+function statText(v) {
+  if (v == null) return "—";
+  return curSym() + (state.ratioMode ? convCur(v).toFixed(4) : fmtPlainNum(convCur(v)));
+}
+
 function renderStats() {
   const rows = state.rows;
   const inputs = rows.map(r => effVal(r.input, r.allowance)).filter(v => v != null);
   $("#st-count").textContent = rows.length;
   $("#st-series").textContent = new Set(rows.map(r => r.series)).size;
+  const minL = $("#st-min-l"), maxL = $("#st-max-l");
+  if (minL) minL.textContent = t(state.ratioMode ? "stMinRatio" : "stMinPrice");
+  if (maxL) maxL.textContent = t(state.ratioMode ? "stMaxRatio" : "stMaxPrice");
   if (!inputs.length) { $("#st-min").textContent = "—"; $("#st-max").textContent = "—"; return; }
   const lo = Math.min.apply(null, inputs), hi = Math.max.apply(null, inputs);
-  if (state.ratioMode) {
-    $("#st-min").textContent = "$" + String(Number(lo.toPrecision(3)));
-    $("#st-max").textContent = "$" + String(Number(hi.toPrecision(3)));
-  } else {
-    $("#st-min").textContent = "$" + (Number.isInteger(lo) ? lo.toFixed(2) : String(lo));
-    $("#st-max").textContent = "$" + (Number.isInteger(hi) ? hi.toFixed(2) : String(hi));
-  }
+  $("#st-min").textContent = statText(lo);
+  $("#st-max").textContent = statText(hi);
 }
 
 function presentSeries() {
@@ -862,16 +1256,16 @@ function presentSeries() {
 
 function renderLegend() {
   const legend = $("#legend");
-  const html = ['<button class="chip all" data-s="*">全部</button>'];
+  const html = ['<button class="chip all" data-s="*">' + esc(t("legendAll")) + "</button>"];
   for (const s of presentSeries()) {
     const off = state.off.has(s) ? " off" : "";
-    html.push('<button class="chip' + off + '" data-s="' + esc(s) + '" style="--c:' + colorOf(s) + '"><i class="cdot"></i>' + esc(s) + "</button>");
+    html.push('<button class="chip' + off + '" data-s="' + esc(s) + '" style="--c:' + colorOf(s) + '"><i class="cdot"></i>' + esc(seriesLabel(s)) + "</button>");
   }
   legend.innerHTML = html.join("");
 }
 
 function cmp(a, b, key, dir) {
-  if (key === "privacy") return (privacyRank(a) - privacyRank(b)) * dir || a.name.localeCompare(b.name, "zh") * dir;
+  if (key === "privacy") return (privacyRank(a) - privacyRank(b)) * dir || a.name.localeCompare(b.name, localeTag()) * dir;
   const va = effVal(a[key], a.allowance), vb = effVal(b[key], b.allowance);
   if (key === "allowance") {
     const xa = a.allowance, xb = b.allowance;
@@ -883,20 +1277,20 @@ function cmp(a, b, key, dir) {
   if (va == null && vb == null) return 0;
   if (va == null) return 1;
   if (vb == null) return -1;
-  if (typeof va === "string") return va.localeCompare(vb, "zh") * dir;
+  if (typeof va === "string") return va.localeCompare(vb, localeTag()) * dir;
   return (va - vb) * dir;
 }
 
 function isRetained(r) {
-  const ret = String(r.retain || "");
-  return !!ret && !/^0\s*天/.test(ret);
+  if (r.notZdr) return true;
+  return r.retainDays != null && r.retainDays > 0;
 }
 
 function matchPrivacy(r) {
   const f = state.privacyFilter;
   if (f === "train") return !!r.training;
   if (f === "retain") return !r.training && isRetained(r);
-  if (f === "zero") return !r.training && /^0\s*天/.test(String(r.retain || ""));
+  if (f === "zero") return !r.training && r.retainDays === 0;
   return true;
 }
 
@@ -906,12 +1300,12 @@ function renderPrivacyLegend() {
   const rows = state.rows;
   const nTrain = rows.filter(r => r.training).length;
   const nRetain = rows.filter(r => !r.training && isRetained(r)).length;
-  const nZero = rows.filter(r => !r.training && /^0\s*天/.test(String(r.retain || ""))).length;
+  const nZero = rows.filter(r => !r.training && r.retainDays === 0).length;
   const opts = [
-    ["all", "隐私:全部(" + rows.length + ")", ""],
-    ["train", "⚠会训练(" + nTrain + ")", "#f87171"],
-    ["retain", "有留存(" + nRetain + ")", "#fbbf24"],
-    ["zero", "零留存(" + nZero + ")", "#94a3b8"]
+    ["all", t("privAll", { n: rows.length }), ""],
+    ["train", t("privTrain", { n: nTrain }), "#f87171"],
+    ["retain", t("privRetain", { n: nRetain }), "#fbbf24"],
+    ["zero", t("privZero", { n: nZero }), "#94a3b8"]
   ];
   el.innerHTML = '<span class="sep"></span>' + opts.map(([k, label, c]) =>
     '<button class="chip' + (state.privacyFilter === k ? " on" : "") + '" data-p="' + k + '"' +
@@ -924,17 +1318,51 @@ function visibleRows() {
   return state.rows
     .filter(r => !state.off.has(r.series))
     .filter(matchPrivacy)
-    .filter(r => !q || (r.name + " " + (r.tier || "") + " " + tierLabel(r.tier) + " " + r.series + " " + (r.training ? "训练" : "") + " " + (r.retain || "")).toLowerCase().includes(q))
+    .filter(r => !q || (r.name + " " + (r.tier || "") + " " + tierLabel(r.tier) + " " + r.series + " " + seriesLabel(r.series) + " " + (r.training ? "训练 training" : "") + " " + retainLabel(r)).toLowerCase().includes(q))
     .sort((a, b) => cmp(a, b, state.sortKey, state.sortDir));
+}
+
+function retainLabel(r) {
+  if (r.notZdr) return t("notZdr");
+  if (r.retainDays != null) return t("days", { n: r.retainDays });
+  return r.retain || "";
 }
 
 function privacyCell(r) {
   const parts = [];
-  if (r.training) parts.push('<span class="badge b-train" title="该模型会使用你的提示词/补全训练未来模型">⚠训练</span>');
-  const ret = String(r.retain || "");
-  if (/^0\s*天/.test(ret)) parts.push('<span class="badge b-zero" title="数据留存 0 天">零留存</span>');
-  else if (ret) parts.push('<span class="badge b-keep" title="数据留存：' + esc(ret) + '">' + esc(ret) + "</span>");
+  if (r.training) parts.push('<span class="badge b-train" title="' + esc(t("trainBadgeTitle")) + '">' + esc(t("trainBadge")) + "</span>");
+  if (r.retainDays === 0) {
+    parts.push('<span class="badge b-zero" title="' + esc(t("zeroRetentionTitle")) + '">' + esc(t("zeroRetention")) + "</span>");
+  } else if (r.notZdr || r.retain) {
+    const ret = retainLabel(r);
+    parts.push('<span class="badge b-keep" title="' + esc(t("retentionTitle", { ret: ret })) + '">' + esc(ret) + "</span>");
+  }
   return parts.length ? parts.join(" ") : '<span class="muted">—</span>';
+}
+
+function copyModelId(r) {
+  const text = r.modelId;
+  if (!text) return;
+  const done = () => toast(t("copied", { id: text }));
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done, () => fallbackCopy(text, done));
+  } else {
+    fallbackCopy(text, done);
+  }
+}
+function fallbackCopy(text, done) {
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.cssText = "position:fixed;opacity:0;pointer-events:none";
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    done();
+  } catch (e) {
+    toast(t("copyFailed"));
+  }
 }
 
 function rowHtml(r, i) {
@@ -944,19 +1372,26 @@ function rowHtml(r, i) {
   const tier = (r.tier
     ? '<span class="badge ' + tierClass(r.tier) + '">' + esc(tierLabel(r.tier)) + "</span>"
     : '<span class="muted">—</span>')
-    + (isLiveTier ? '<span class="live-tag"><i></i>当前</span>' : "");
+    + (isLiveTier ? '<span class="live-tag"><i></i>' + esc(t("liveTag")) + "</span>" : "");
   const allowBar = r.allowance == null ? "" :
     '<span class="bar"><i style="width:' + Math.min(100, r.allowance / 60 * 100) + "%;background:" + tint(c, .75) + '"></i></span>';
+  const allowCell = '<span class="allow">' +
+    (r.promoOld != null ? '<span class="allow-old" title="' + esc(t("promoOldTitle")) + '">$' + r.promoOld + "</span>" : "") +
+    "<span>" + (r.allowance == null ? "—" : "$" + r.allowance) + "</span>" + allowBar + "</span>" +
+    (r.promoNote ? '<br><span class="badge b-promo" title="' + esc(t("promoBadgeTitle", { note: promoNoteLabel(r.promoNote) })) + '">⚡' + esc(promoNoteLabel(r.promoNote)) + "</span>" : "");
   return '<tr style="--c:' + c + '"' + (r.training ? ' class="is-train"' : "") + ">" +
     '<td class="rank">' + (i + 1) + "</td>" +
-    '<td><span class="chip-sm" style="--c:' + c + '">' + esc(r.series) + "</span></td>" +
-    '<td class="name">' + esc(r.name) + (r.training ? " ⚠" : "") + "</td>" +
+    '<td><span class="chip-sm" style="--c:' + c + '">' + esc(seriesLabel(r.series)) + "</span></td>" +
+    '<td class="name"><span class="name-inner" title="' + esc(r.name) + '">' + esc(r.name) + "</span>" + (r.training ? " ⚠" : "") + "</td>" +
+    '<td class="mid col-mid">' + (r.modelId
+      ? '<span class="mid-inner" title="' + esc(r.modelId) + '">' + esc(r.modelId) + '</span><button class="copy-id" data-copy="' + esc(r.modelId) + '" title="' + esc(t("copyIdTitle", { id: r.modelId })) + '"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>'
+      : '<span class="muted">—</span>') + "</td>" +
     "<td>" + tier + "</td>" +
     '<td class="num strong">' + fmtPrice(r.input, r.allowance) + "</td>" +
     '<td class="num">' + fmtPrice(r.output, r.allowance) + "</td>" +
     '<td class="num col-cr">' + fmtPrice(r.cacheRead, r.allowance) + "</td>" +
     '<td class="num col-cw">' + fmtPrice(r.cacheWrite, r.allowance) + "</td>" +
-    '<td class="num"><span class="allow"><span>' + (r.allowance == null ? "—" : "$" + r.allowance) + "</span>" + allowBar + "</span></td>" +
+    '<td class="num"><span class="allow-wrap">' + allowCell + "</span></td>" +
     "<td>" + privacyCell(r) + "</td>" +
     "</tr>";
 }
@@ -965,7 +1400,7 @@ function renderTable() {
   const rows = visibleRows();
   $("#tbody").innerHTML = rows.length
     ? rows.map(rowHtml).join("")
-    : '<tr><td class="empty" colspan="10">没有匹配的模型，试试调整搜索或系列筛选</td></tr>';
+    : '<tr><td class="empty" colspan="11">' + esc(t("emptyTable")) + "</td></tr>";
   document.querySelectorAll("#thead th[data-key]").forEach(th => {
     if (th.dataset.key === state.sortKey) {
       th.setAttribute("aria-sort", state.sortDir === 1 ? "ascending" : "descending");
@@ -981,6 +1416,7 @@ function render() {
   renderPrivacyLegend();
   renderTable();
   renderPrivacyNotes();
+  renderRateNote();
   syncPriceModeUi();
 }
 
@@ -988,11 +1424,11 @@ function renderPrivacyNotes() {
   const ul = $("#privacy-notes");
   const head = $("#privacy-note-head");
   if (!ul) return;
-  const notes = state.privacyNotes && state.privacyNotes.length ? state.privacyNotes : PRIVACY_NOTES_SNAPSHOT;
-  ul.innerHTML = notes.map(n => "<li><b>" + esc(n.model) + "：</b>" + esc(n.text) + "</li>").join("");
+  const notes = state.privacyNotes && state.privacyNotes.length ? state.privacyNotes : pickNotes(null);
+  ul.innerHTML = notes.map(n => "<li><b>" + esc(n.model) + esc(t("notesSep")) + "</b>" + esc(n.text) + "</li>").join("");
   if (head) {
     head.style.display = "";
-    $("#privacy-note-date").textContent = state.online ? "官方实时" : "内置快照";
+    head.textContent = t(state.online ? "privacyHeadLive" : "privacyHeadSnapshot");
   }
 }
 
@@ -1000,11 +1436,23 @@ function syncPriceModeUi() {
   document.querySelectorAll("#price-mode button").forEach(b => {
     b.classList.toggle("on", (b.dataset.m === "ratio") === state.ratioMode);
   });
-  const suffix = state.ratioMode ? " ÷额度" : "";
-  const labels = { input: "输入 $/1M", output: "输出 $/1M", cacheRead: "缓存读取", cacheWrite: "缓存写入" };
+  document.querySelectorAll("#currency-mode button").forEach(b => {
+    b.classList.toggle("on", (b.dataset.cur || "usd") === state.currency);
+  });
+  const sym = curSym();
+  const modeBtn = document.querySelector('#price-mode button[data-m="price"]');
+  if (modeBtn) modeBtn.textContent = sym + "/1M";
+  // 表头只在主列体现折算（避免四列同时加长后缀把总宽撑爆），其余列用轻量记号
+  const labels = state.ratioMode
+    ? { input: t("thInputRatio", { sym: sym }), output: t("thOutputRatio"), cacheRead: t("thCacheReadRatio"), cacheWrite: t("thCacheWriteRatio") }
+    : { input: t("thInput", { sym: sym }), output: t("thOutput", { sym: sym }), cacheRead: t("thCacheRead"), cacheWrite: t("thCacheWrite") };
   document.querySelectorAll("#thead th[data-key] .th-btn").forEach(btn => {
     const k = btn.dataset.key;
-    if (labels[k]) btn.innerHTML = esc(labels[k] + suffix) + '<span class="ic"></span>';
+    if (labels[k]) btn.innerHTML = esc(labels[k]) + '<span class="ic"></span>';
+  });
+  document.querySelectorAll("#thead th[data-key]").forEach(th => {
+    const k = th.dataset.key;
+    th.title = state.ratioMode && labels[k] ? t("ratioColTitle") : "";
   });
 }
 
@@ -1014,6 +1462,90 @@ function setRatioMode(on) {
   renderStats();
   renderTable();
   syncPriceModeUi();
+}
+
+function setCurrency(cur) {
+  state.currency = cur === "cny" ? "cny" : "usd";
+  try { localStorage.setItem(LS_CUR, state.currency); } catch (e) { /* ignore */ }
+  renderStats();
+  renderTable();
+  syncPriceModeUi();
+  renderRateNote();
+}
+
+/* ---------- USD → CNY 汇率 ---------- */
+function loadRateCache() {
+  try {
+    const raw = localStorage.getItem(LS_RATE);
+    if (!raw) return null;
+    const d = JSON.parse(raw);
+    if (!d || typeof d.value !== "number" || !(d.value > 0)) return null;
+    return d;
+  } catch (e) { return null; }
+}
+function saveRateCache(rec) {
+  try { localStorage.setItem(LS_RATE, JSON.stringify(rec)); } catch (e) { /* ignore */ }
+}
+async function fetchRate() {
+  const cached = loadRateCache();
+  if (cached) {
+    state.rate = cached;
+    renderStats();
+    renderTable();
+    renderRateNote();
+  }
+  if (cached && Date.now() - (cached.fetchedAt || 0) < 24 * 3600 * 1000) return;
+  const apis = [
+    { url: "https://api.frankfurter.app/latest?from=USD&to=CNY", src: "frankfurter.app" },
+    { url: "https://open.er-api.com/v6/latest/USD", src: "open.er-api.com" }
+  ];
+  for (const api of apis) {
+    try {
+      const text = await fetchText(api.url, 8000);
+      const j = JSON.parse(text);
+      const v = j && j.rates && j.rates.CNY;
+      if (typeof v === "number" && v > 0) {
+        const rec = {
+          value: v,
+          date: (j.date && String(j.date)) || new Date().toISOString().slice(0, 10),
+          fetchedAt: Date.now(),
+          source: api.src
+        };
+        saveRateCache(rec);
+        state.rate = rec;
+        renderStats();
+        renderTable();
+        renderRateNote();
+        return;
+      }
+    } catch (e) { /* try next api */ }
+  }
+}
+
+function renderRateNote() {
+  const r = state.rate || RATE_SNAPSHOT;
+  const vars = {
+    rate: Number(r.value.toFixed(4)),
+    src: r.source,
+    date: r.date,
+    live: t(r.fetchedAt ? "rateLive" : "rateSnapshot")
+  };
+  const el = $("#rate-note");
+  if (el) el.textContent = t("rateNote", vars);
+  const cny = state.currency === "cny";
+  const fx = $("#fx-note");
+  if (fx) {
+    fx.hidden = !cny;
+    if (cny) fx.textContent = t("fxNote", vars);
+  }
+  const pill = $("#fx-rate");
+  if (pill) {
+    pill.hidden = !cny;
+    if (cny) {
+      pill.textContent = t("fxRate", vars);
+      pill.title = t("fxRateTitle", vars);
+    }
+  }
 }
 
 function saveCache(rows, notes, when) {
@@ -1027,18 +1559,23 @@ function loadCache() {
     const raw = localStorage.getItem(LS_CACHE);
     if (!raw) return null;
     const data = JSON.parse(raw);
-    if (!data || (data.v !== 2 && data.v !== 1) || !Array.isArray(data.rows)) return null;
+    if (!data || (data.v !== 3 && data.v !== 2 && data.v !== 1) || !Array.isArray(data.rows)) return null;
     return { fetchedAt: data.fetchedAt, rows: data.rows, notes: data.notes || null };
   } catch (e) { return null; }
 }
 
-function applyData(rows, notes, label, when, save, online) {
+function applyData(rows, notes, key, when, save, online) {
   state.rows = rows;
   if (notes && notes.length) state.privacyNotes = notes;
-  if (save) saveCache(rows, state.privacyNotes, when);
+  if (save) saveCache(rows, state.lang === "zh" ? state.privacyNotes : null, when);
+  setStatus(key, when, online);
   render();
-  setStatus(label, when, online);
   setBanner(false);
+}
+
+function pickNotes(fetched) {
+  if (state.lang === "en") return PRIVACY_NOTES_SNAPSHOT_EN;
+  return (fetched && fetched.length) ? fetched : PRIVACY_NOTES_SNAPSHOT;
 }
 
 function fetchText(url, ms) {
@@ -1064,7 +1601,7 @@ function fetchText(url, ms) {
   });
 }
 
-async function fetchLive() {
+async function fetchLive(silent) {
   setRefreshing(true);
   let result = null;
   for (const src of SOURCES) {
@@ -1074,29 +1611,32 @@ async function fetchLive() {
       if (!validateRows(rows)) continue;
       let priv = src.type === "mdx" ? parsePrivacySection(text) : parseHtmlPrivacySection(text);
       mergePrivacy(rows, priv);
-      result = { rows, notes: priv && priv.notes ? priv.notes : null, label: src.label };
+      let ids = src.type === "mdx" ? parseModelIdTable(text) : parseHtmlModelIdTable(text);
+      mergeModelIds(rows, ids);
+      result = { rows, notes: priv && priv.notes ? priv.notes : null, key: src.key };
       break;
     } catch (e) { /* try next source */ }
   }
   setRefreshing(false);
   const stamp = new Date().toISOString();
   if (!result) {
-    setStatus(state.sourceLabel || "内置快照", state.sourceLabel ? state.fetchedAt : SNAPSHOT.date, false);
-    setBanner(true, "无法连接数据源，当前显示「" + (state.sourceLabel || "内置快照") + "」数据，稍后可点击「刷新数据」重试。");
-    toast("自动更新失败，已保留当前数据");
+    setStatus(state.sourceKey, state.fetchedAt || SNAPSHOT.date, false);
+    setBanner(true, t("bannerOffline", { src: statusLabel(state.sourceKey) }));
+    if (!silent) toast(t("toastFailed"));
     return;
   }
-  if (!result.notes) result.notes = state.privacyNotes && state.privacyNotes.length ? state.privacyNotes : PRIVACY_NOTES_SNAPSHOT;
+  result.notes = pickNotes(result.notes);
   if (dataKey(result.rows) === dataKey(state.rows)) {
-    saveCache(state.rows, result.notes, stamp);
+    if (!state.rows.length || state.rows[0].modelId === undefined) mergeModelIds(state.rows, MODEL_ID_SNAPSHOT);
+    saveCache(state.rows, state.lang === "zh" ? result.notes : null, stamp);
     state.privacyNotes = result.notes;
+    setStatus(result.key, stamp, true);
     renderPrivacyNotes();
-    setStatus(result.label, stamp, true);
     setBanner(false);
-    toast("价格数据已是最新");
+    if (!silent) toast(t("toastFresh"));
   } else {
-    applyData(result.rows, result.notes, result.label, stamp, true, true);
-    toast("已自动更新至最新价格数据");
+    applyData(result.rows, result.notes, result.key, stamp, true, true);
+    if (!silent) toast(t("toastUpdated"));
   }
 }
 
@@ -1109,13 +1649,85 @@ function toggleTheme() {
 
 function syncThemeUi() {
   const light = document.documentElement.dataset.theme === "light";
-  $("#theme-label").textContent = light ? "深色" : "浅色";
+  $("#theme-label").textContent = t(light ? "btnThemeDark" : "btnThemeLight");
   $("#theme-ic").innerHTML = light
     ? '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>'
     : '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>';
 }
 
+function refreshStatusUi() {
+  if (state.fetchedAt) setStatus(state.sourceKey, state.fetchedAt, state.online);
+}
+
+function applyLangUi() {
+  document.documentElement.lang = state.lang === "zh" ? "zh-CN" : "en";
+  document.documentElement.setAttribute("data-lang", state.lang);
+  document.title = t("htmlTitle");
+  $("#brand-title").textContent = t("brandTitle");
+  $("#brand-sub").textContent = t("brandSub");
+  const langBtn = $("#lang");
+  langBtn.title = t("btnLangTitle");
+  $("#lang-label").textContent = state.lang === "zh" ? "EN" : "中文";
+  const usageBtn = $("#usage-btn");
+  usageBtn.title = t("btnUsageTitle");
+  $("#usage-label").textContent = t("btnUsage");
+  $("#refresh-label").textContent = t("btnRefresh");
+  $("#theme").title = t("btnThemeTitle");
+  $("#status").title = t("statusTitle");
+  if (!state.fetchedAt) $("#status-text").textContent = t("statusLoading");
+  $("#st-count-l").textContent = t("stCount");
+  $("#st-series-l").textContent = t("stSeries");
+  $("#search").setAttribute("placeholder", t("searchPh"));
+  $("#privacy-legend").title = t("privacyLegendTitle");
+  $("#price-mode").title = t("priceModeTitle");
+  $("#currency-mode").title = t("currencyTitle");
+  const ratioBtn = document.querySelector('#price-mode button[data-m="ratio"]');
+  if (ratioBtn) ratioBtn.textContent = t("ratioBtn");
+  $("#th-id").textContent = t("thId");
+  $("#th-tier").textContent = t("thTier");
+  const sortable = { series: "thSeries", name: "thName", allowance: "thAllow", privacy: "thPrivacy" };
+  document.querySelectorAll("#thead th[data-key]").forEach(th => {
+    const k = th.dataset.key;
+    if (!sortable[k]) return;
+    const btn = th.querySelector(".th-btn");
+    if (btn) btn.innerHTML = esc(t(sortable[k])) + '<span class="ic"></span>';
+  });
+  $("#foot-price").textContent = t("footPrice");
+  $("#foot-peak").textContent = t("footPeak");
+  $("#src-label").textContent = t("srcLabel");
+  const docLink = $("#doc-link");
+  docLink.textContent = t("docLink");
+  docLink.href = docUrl();
+  $("#snap-label").textContent = t("snapLabel");
+  $("#console-pre").textContent = t("consolePre");
+  $("#console-link").textContent = t("consoleLink");
+  $("#console-post").textContent = t("consolePost");
+  syncThemeUi();
+  syncPriceModeUi();
+  updatePeakStatus();
+}
+
+function setLang(lang) {
+  if (lang !== "zh" && lang !== "en") return;
+  state.lang = lang;
+  try { localStorage.setItem(LS_LANG, lang); } catch (e) { /* ignore */ }
+  try {
+    const u = new URL(location.href);
+    if (lang === "zh") u.searchParams.delete("lang");
+    else u.searchParams.set("lang", lang);
+    history.replaceState(null, "", u.toString());
+  } catch (e) { /* ignore */ }
+  state.privacyNotes = pickNotes(null);
+  applyLangUi();
+  render();
+  refreshStatusUi();
+  fetchLive(true);
+}
+
 function bindEvents() {
+  $("#lang").addEventListener("click", () => {
+    setLang(state.lang === "zh" ? "en" : "zh");
+  });
   $("#search").addEventListener("input", e => {
     state.query = e.target.value.trim().toLowerCase();
     renderTable();
@@ -1130,6 +1742,11 @@ function bindEvents() {
       state.sortDir = 1;
     }
     renderTable();
+  });
+  $("#tbody").addEventListener("click", e => {
+    const btn = e.target.closest(".copy-id[data-copy]");
+    if (!btn) return;
+    copyModelId({ modelId: btn.dataset.copy });
   });
   $("#legend").addEventListener("click", e => {
     const chip = e.target.closest(".chip");
@@ -1148,6 +1765,11 @@ function bindEvents() {
     if (!btn) return;
     setRatioMode(btn.dataset.m === "ratio");
   });
+  $("#currency-mode").addEventListener("click", e => {
+    const btn = e.target.closest("button[data-cur]");
+    if (!btn) return;
+    setCurrency(btn.dataset.cur);
+  });
   $("#privacy-legend").addEventListener("click", e => {
     const chip = e.target.closest(".chip[data-p]");
     if (!chip) return;
@@ -1159,29 +1781,36 @@ function bindEvents() {
 
 (function boot() {
   try {
-    const saved = localStorage.getItem(LS_THEME);
-    if (saved) document.documentElement.dataset.theme = saved;
-  } catch (e) { /* ignore */ }
-  syncThemeUi();
-  bindEvents();
-  updatePeakStatus();
-  try {
+    const savedTheme = localStorage.getItem(LS_THEME);
+    if (savedTheme) document.documentElement.dataset.theme = savedTheme;
+    const bootLang = document.documentElement.getAttribute("data-lang");
+    if (bootLang === "en" || bootLang === "zh") state.lang = bootLang;
     state.ratioMode = localStorage.getItem(LS_RATIO) === "1";
+    state.currency = localStorage.getItem(LS_CUR) === "cny" ? "cny" : "usd";
+    const rc = loadRateCache();
+    if (rc) state.rate = rc;
     const sd = $("#snapshot-date");
     if (sd) sd.textContent = SNAPSHOT.date;
   } catch (e) { /* ignore */ }
+  applyLangUi();
+  bindEvents();
   const cached = loadCache();
   if (cached && validateRows(cached.rows)) {
-    if (cached.rows[0] && cached.rows[0].retain === undefined) {
+    const r0 = cached.rows[0];
+    if (r0 && (r0.retain === undefined || r0.retainDays === undefined)) {
       mergePrivacy(cached.rows, { table: PRIVACY_SNAPSHOT_TABLE.map(r => ({ model: r[0], train: r[1], retain: r[2] })) });
     }
-    state.privacyNotes = cached.notes && cached.notes.length ? cached.notes : PRIVACY_NOTES_SNAPSHOT;
-    applyData(cached.rows, state.privacyNotes, "本地缓存", cached.fetchedAt || "", false, false);
+    if (r0 && r0.modelId === undefined) {
+      mergeModelIds(cached.rows, MODEL_ID_SNAPSHOT);
+    }
+    state.privacyNotes = pickNotes(cached.notes);
+    applyData(cached.rows, state.privacyNotes, "cache", cached.fetchedAt || "", false, false);
   } else {
-    state.privacyNotes = PRIVACY_NOTES_SNAPSHOT;
-    applyData(SNAPSHOT.rows, PRIVACY_NOTES_SNAPSHOT, "内置快照", SNAPSHOT.date, false, false);
+    state.privacyNotes = pickNotes(null);
+    applyData(SNAPSHOT.rows, state.privacyNotes, "snapshot", SNAPSHOT.date, false, false);
   }
   setInterval(updatePeakStatus, 30000);
+  fetchRate();
   fetchLive();
 })();
 </script>

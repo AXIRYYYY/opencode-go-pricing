@@ -1,54 +1,67 @@
-# OpenCode Go 模型价格速查
+<div align="center">
 
-一个零依赖的单文件网页，自动整理 [OpenCode Go](https://opencode.ai/docs/zh-cn/go/) 全部模型每 1M tokens 的价格与每月使用额度，按价格从便宜到贵排序，并用不同颜色区分模型系列。
+# OpenCode Go · Model Pricing Guide
 
-**在线使用：<https://axiryyyy.github.io/opencode-go-pricing/>**
+**Live dashboard: <https://axiryyyy.github.io/opencode-go-pricing/>**
 
-## 功能
+[中文说明](README.zh-CN.md)
 
-- 每次打开自动同步官方最新数据（GitHub raw → jsDelivr 镜像 → ghproxy/gh-proxy/ghfast 镜像，多级兜底）
-- 默认按输入单价升序，点击任意列头切换排序
-- 11 个模型系列各一色，图例可点击筛选；支持搜索
-- 统计概览（档位数 / 系列数 / 最低 / 最高输入价）
-- DeepSeek 高峰/低峰档自动标色，多档价（≤ 200K / > 200K 等）逐行展示；档位徽章已汉化（低峰/高峰）
-- 顶部实时显示当前 DeepSeek 计费时段（高峰/低峰）与切换倒计时，价格档上标注「当前」生效档
-- localStorage 缓存 + 内置快照，断网也能查看最近数据
-- 深色 / 浅色主题切换，响应式布局
+</div>
 
-## 用量页
+A zero-dependency, single-file web page that aggregates every [OpenCode Go](https://opencode.ai/docs/go/) model's per-1M-token prices and monthly quotas — sorted from cheap to expensive, color-coded by model series, and auto-synced from the official docs on every visit.
 
-- `usage.html` 独立页面：OpenCode Go 三档限额（5 小时 / 周 / 月，大圆环 Hero 展示）+ DeepSeek 账号余额（大数字展示），附同款 DeepSeek 高低峰徽章与倒计时；Key 与代理收进底部折叠「设置」，折叠条上用 ✓/✗ 显示配置状态
-- 各贴一次 Key 存浏览器 `localStorage`，以后打开自动拉取；Key 只直发官方域名
-- Go Key 见本机 `auth.json` 的 `opencode-go` 项；DeepSeek 任取一个同账号 `sk-` Key 即可（余额为账号级）
-- 配速预警：圆环下显示日预算与近 24h 速度；临界值按官方限制折算（周=月 50%，5h=月 20%，月基数 $60）——最后一周开始时月需 ≥50%、最后 5h 开始时月需 ≥80%，否则即使打满也注定浪费；太快按月外推超 100% 报警。速度靠本机 `localStorage` 存 7 天历史计算，不上传
+> Unofficial community tool — not affiliated with OpenCode. All data comes from the official docs; this page only aggregates and presents it.
 
-### 本地代理（Go 卡必需）
+## Features
 
-Go 用量接口不返回 CORS 头，浏览器无法直连，必须经本地代理。**双击 `start-proxy.bat` 即可**：第一次它会自动从本机 `auth.json` 找 Go Key，再问你要 DeepSeek Key，存到本机 `usage-proxy.keys.json`（已 gitignore，切勿提交），然后启动代理；以后双击直接启动。
+- **Always current**: re-syncs the official docs on every visit, with a multi-level fallback chain (GitHub raw → jsDelivr → ghproxy / gh-proxy / ghfast mirrors)
+- **Sort & search**: click any column header to sort (input price ascending by default); search across models, series and tiers
+- **Series legend**: 11 color-coded model series; click to filter
+- **DeepSeek peak/off-peak**: live billing-window badge with countdown, per-tier rows (Off-Peak / Peak, ≤200K / >200K), and a "live" marker on the tier currently in effect
+- **Fee-equivalent mode**: list price ÷ monthly quota × $10 — the effective unit price when your full quota is used, directly comparable with pay-as-you-go platforms
+- **USD / CNY toggle** with live FX rates — the conversion rate is labeled next to the toggle while CNY is active (cached fallback included)
+- **Model ID column** with one-click copy (e.g. `deepseek-v4.1-flash`)
+- **Privacy column**: training / retention info parsed from the official privacy table, plus privacy filters
+- **Bilingual UI (EN / ZH)**: auto-detected from the browser, switchable in the header; force with `?lang=en` or `?lang=zh`
+- **Offline-friendly**: localStorage cache + built-in snapshot; dark / light theme; responsive layout
 
-代理地址 `http://127.0.0.1:8787`（仅本机），窗口不要关，再去浏览器刷新 `usage.html`，Go 卡会显示「已更新 · 代理」。
+## Usage page (`usage.html`)
 
-手动方式（可选）：设环境变量 `OPENCODE_GO_KEY` / `DEEPSEEK_API_KEY` 后运行 `python usage-proxy.py`。
+A companion page that shows *your own* Go usage:
 
-### 油猴脚本（官方控制台页预警）
+- Three quota rings (5-hour / weekly / monthly) + DeepSeek account balance
+- The same DeepSeek peak/off-peak badge and countdown
+- Keys live only in your browser's `localStorage` and are sent only to the official domains (via the local proxy where required)
+- Pace warnings: daily budget vs. recent 24h speed, with the official limits folded in (weekly = 50% of monthly, 5h = 20% of monthly, $60 baseline) — warns when the remaining time can no longer fit a 100% quota, or when you're on track to exceed it
+- Your Go key is in your local `auth.json` under `opencode-go`; any `sk-` key from the same DeepSeek account works for the balance (balance is account-level)
 
-`opencode-go-alerts.user.js`：在官方 Go 页面（`opencode.ai/workspace/*/go`）顶部显示与 `usage.html` 同套的配速预警（90%/用完/搁浅/快慢临界值）。优先读页面水合数据里的 `rollingUsage/weeklyUsage/monthlyUsage`（精确百分比 + 秒级重置 + 状态），`data-slot` 语义标签兜底；只读页面，不调接口、不需 Key。
+### Local proxy (required for the Go card)
 
-1. 浏览器装 Tampermonkey 扩展。
-2. 打开本仓库的 `opencode-go-alerts.user.js` 原始文件（GitHub 点 Raw），Tampermonkey 会提示安装，确认。
-3. 刷新官方 Go 页面，顶部出现预警横幅即生效（✕ 可本次隐藏）。
+The Go usage API returns no CORS headers, so the browser cannot call it directly — a local proxy is required. **Just double-click `start-proxy.bat`**: on first run it finds your Go key in `auth.json`, asks for your DeepSeek key, stores them in `usage-proxy.keys.json` (gitignored — never commit it), and starts the proxy. After that, a double-click is all it takes.
 
-注意：告警逻辑与 `usage.html` 内 `analyzeGo` 二选一维护，改动请两边同步；官方改版导致读不到数字时脚本自动隐藏，此时把用量区的 HTML 贴过来修选择器。
+Proxy address: `http://127.0.0.1:8787` (localhost only). Keep the window open and refresh `usage.html` — the Go card should then show "updated · proxy".
 
-## 使用
+Manual alternative: set `OPENCODE_GO_KEY` / `DEEPSEEK_API_KEY` and run `python usage-proxy.py`.
 
-无需构建，直接打开 `index.html` 即可；或使用上方在线地址。
+### Tampermonkey userscript (alerts on the official console)
 
-## 数据来源
+`opencode-go-alerts.user.js` adds the same pace warnings (90% / depleted / stranded / speed thresholds) to the top of the official Go page (`opencode.ai/workspace/*/go`). It prefers the hydrated `rollingUsage/weeklyUsage/monthlyUsage` values on the page (exact percentages, second-level resets, status) with `data-slot` labels as a fallback. Read-only page injection — no API calls, no keys.
 
-页面运行时实时解析 OpenCode Go 官方文档源文件：
+1. Install the Tampermonkey extension.
+2. Open the raw `opencode-go-alerts.user.js` in this repo — Tampermonkey will offer to install it. Confirm.
+3. Refresh the official Go page; a warning banner appears at the top (✕ hides it for the session).
+
+Note: the alert logic and `analyzeGo` in `usage.html` are maintained as two copies — keep them in sync. If the official page changes and the numbers can't be read, the script hides itself; paste the usage-area HTML to fix the selectors.
+
+## Usage
+
+No build step — open `index.html` directly, or use the live link above.
+
+## Data source
+
+Parsed at runtime from the official docs source files:
 
 - `https://raw.githubusercontent.com/anomalyco/opencode/dev/packages/web/src/content/docs/zh-cn/go.mdx`
-- 镜像：`https://cdn.jsdelivr.net/gh/anomalyco/opencode@dev/...`
+- Mirror: `https://cdn.jsdelivr.net/gh/anomalyco/opencode@dev/...`
 
-价格与额度以官方文档为准，本页面仅做聚合展示。
+Prices and quotas follow the official docs; this page only aggregates and presents them.

@@ -295,7 +295,7 @@
       </div>
       <p class="hint">
         Go Key 位置：本机 <code>~/.local/share/opencode/auth.json</code> 中 <code>"opencode-go"</code> 项的 key（或 Windows 下 <code>%USERPROFILE%\.local\share\opencode\auth.json</code>，以实际安装位置为准）。<br>
-        Go 接口不允许浏览器跨域直连，因此 <b>Go 卡必须走本地代理</b>：在仓库目录运行 <code>python usage-proxy.py</code>（Key 通过环境变量 <code>OPENCODE_GO_KEY</code> / <code>DEEPSEEK_API_KEY</code> 或同目录 <code>usage-proxy.keys.json</code> 提供，详见 README），保持窗口开着即可。DeepSeek 卡可直连，代理仅作备用。<br>
+        Go 接口不允许浏览器跨域直连，因此 <b>Go 卡必须走本地代理</b>：在仓库目录运行 <code>python usage-proxy.py</code>（Key 通过环境变量 <code>OPENCODE_GO_KEY</code> / <code>DEEPSEEK_API_KEY</code> 或同目录 <code>usage-proxy.keys.json</code> 提供，详见 README），保持窗口开着即可；<b>Windows 电脑双击仓库里的 <code>start-proxy.bat</code> 运行也可</b>（首次会自动读取 Go Key 并提示输入 DeepSeek Key）。DeepSeek 卡可直连，代理仅作备用。<br>
         安全提示：DeepSeek 官方条款不建议把 Key 放前端页面；本页仅做个人自用，Key 只经浏览器直发官方域名（或你自己的本地代理）。建议使用可随时 revoke 的 Key，勿分享带 Key 的页面状态。
       </p>
     </div>
