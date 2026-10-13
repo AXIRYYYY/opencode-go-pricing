@@ -2,11 +2,12 @@
 // @name         OpenCode Go 配速预警
 // @name:zh-CN   OpenCode Go 配速预警
 // @namespace    https://github.com/axiryyyy/opencode-go-pricing
-// @version      1.0.1
-// @description  在官方 Go 控制台页面顶部显示配速预警：90%/用完提醒、周重置晚于月重置的搁浅分析、快慢配速临界值。只读页面数字，不调接口、不需 Key。
-// @description:zh-CN 在官方 Go 控制台页面顶部显示配速预警：90%/用完提醒、周重置晚于月重置的搁浅分析、快慢配速临界值。只读页面数字，不调接口、不需 Key。
+// @version      1.1.0
+// @description  在官方 Go 控制台页面顶部显示配速预警：90%/用完提醒、周重置晚于月重置的搁浅分析、快慢配速临界值。官方已改版为 /console：优先同源 fetch zen usage 接口（精确数据），失败再读新版用量卡片 DOM（progressbar aria-valuenow + title 绝对时间）。
+// @description:zh-CN 在官方 Go 控制台页面顶部显示配速预警：90%/用完提醒、周重置晚于月重置的搁浅分析、快慢配速临界值。官方已改版为 /console：优先同源 fetch zen usage 接口（精确数据），失败再读新版用量卡片 DOM（progressbar aria-valuenow + title 绝对时间）。
 // @author        axiryyyy
 // @license      MIT
+// @match        https://opencode.ai/console/*/go*
 // @match        https://opencode.ai/workspace/*/go*
 // @run-at       document-idle
 // @grant        none
@@ -15,10 +16,11 @@
 'use strict';
 
 /* 说明：
- * - 数据来源（按优先级）：① 页面水合数据里的 rollingUsage/weeklyUsage/monthlyUsage
- *   对象（精确百分比 + resetInSec + 状态，与官方显示同源）；② data-slot
- *   语义标签兜底（[data-slot="usage-item"] 内 label/value/reset-time）。
- *   只读页面，不做任何网络请求、不需 Key。
+ * - 数据来源（按优先级）：① 同源 fetch /inference/go/v1/usage（官方 JSON 接口，带
+ *   cookie 同源请求，拿得到精确百分比 + ISO reset 时间；拿不到就静默降级）；
+ *   ② 新版 /console Go 页 DOM 兜底：section[aria-label="Go usage limits"] 的
+ *   progressbar aria-valuenow（整数百分比）+ reset 时间的 title 绝对日期；
+ *   ③ 旧版 data-slot 语义标签再兜底。
  * - 告警逻辑 analyzeGo 与仓库 usage.html 内同名函数保持一致，改动时请两边同步。
  * - 官方改版导致读不到数字时自动隐藏，不打扰。
  */
@@ -224,56 +226,85 @@ function analyzeGo(data) {
   return { alerts, bottleneck };
 }
 
-/* ---------- scrape：只读页面数字 ---------- */
-/* ---------- scrape：优先读水合数据，DOM 语义标签兜底 ---------- */
-function scrapeHydration() {
-  const names = { rolling: 'rollingUsage', weekly: 'weeklyUsage', monthly: 'monthlyUsage' };
-  const scripts = document.getElementsByTagName('script');
-  const out = {};
-  let found = 0;
-  for (const { key } of WINDOWS) {
-    const re = new RegExp(names[key] + '\\s*:\\s*(?:\\$[\\w$]+\\[\\d+\\]=)?\\{([^}]*)\\}');
-    for (let i = 0; i < scripts.length; i++) {
-      const t = scripts[i].textContent || '';
-      if (t.indexOf(names[key]) === -1) continue;
-      const m = t.match(re);
-      if (!m) continue;
-      const body = m[1];
-      const st = (body.match(/status\s*:\s*"([^"]*)"/) || [])[1] || 'ok';
-      const rs = parseFloat((body.match(/resetInSec\s*:\s*(\d+)/) || [])[1]);
-      const pc = parseFloat((body.match(/usagePercent\s*:\s*([\d.]+)/) || [])[1]);
-      if (!Number.isFinite(pc)) continue;
-      out[key] = {
-        percent: Math.min(100, Math.max(0, pc)),
-        status: /rate-limited/i.test(st) ? 'rate-limited' : 'ok',
-        resetsAt: Number.isFinite(rs) ? Date.now() + rs * 1000 : null
-      };
-      found++;
-      break;
+/* ---------- 数据获取：优先同源 zen usage 接口，DOM 兜底 ---------- */
+const API_URL = '/inference/go/v1/usage';
+let apiCache = null, apiAt = 0, apiFailAt = 0;
+const API_TTL = 55e3, API_FAIL_BACKOFF = 90e3;
+
+async function fetchAPIUsage() {
+  const now = Date.now();
+  if (apiCache && now - apiAt < API_TTL) return apiCache;
+  // 拿不到（401 被拒/网络不行）时不狂试：退避 90s。
+  // 退避与“有没有旧缓存”无关——否则缓存过期后接口持续失败，会每个 tick 都重试一次。
+  if (now - apiFailAt < API_FAIL_BACKOFF) return apiCache;
+  try {
+    const r = await fetch(API_URL, { credentials: 'include', cache: 'no-store', headers: { 'Accept': 'application/json' } });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const body = await r.json();
+    const usage = body && body.usage;
+    const out = {};
+    let n = 0;
+    for (const { key } of WINDOWS) {
+      const w = usage && usage[key];
+      if (w && Number.isFinite(w.percent)) {
+        out[key] = {
+          percent: Math.min(100, Math.max(0, w.percent)),
+          status: /rate-limited/i.test(String(w.status || '')) ? 'rate-limited' : 'ok',
+          resetsAt: typeof w.resetsAt === 'string' ? new Date(w.resetsAt).getTime() : null
+        };
+        n++;
+      }
     }
+    if (!n) throw new Error('empty');
+    apiCache = out;
+    apiAt = now;
+    return out;
+  } catch (e) {
+    apiFailAt = Date.now();
+    return apiCache; // 旧缓存也比没有强
   }
-  return found ? out : null;
 }
-// 中文（4 小时 1 分钟 / 6 天 14 小时）+ 英文（1 hour 21 minutes）都认
-function parseDuration(t) {
-  const s = String(t || '');
-  const num = (re, mul) => {
-    const x = s.match(re);
-    return x ? parseFloat(x[1]) * mul : 0;
-  };
-  const ms = num(/(\d+(?:\.\d+)?)\s*周/i, 7 * 86400000)
-    + num(/(\d+(?:\.\d+)?)\s*天/i, 86400000)
-    + num(/(\d+(?:\.\d+)?)\s*(?:小时|时)/i, 3600e3)
-    + num(/(\d+(?:\.\d+)?)\s*(?:分钟|分)/i, 60e3)
-    + num(/(\d+(?:\.\d+)?)\s*秒/i, 1000)
-    + num(/(\d+(?:\.\d+)?)\s*weeks?/i, 7 * 86400000)
-    + num(/(\d+(?:\.\d+)?)\s*days?/i, 86400000)
-    + num(/(\d+(?:\.\d+)?)\s*hours?/i, 3600e3)
-    + num(/(\d+(?:\.\d+)?)\s*(?:minutes?|mins?)/i, 60e3)
-    + num(/(\d+(?:\.\d+)?)\s*seconds?/i, 1000);
-  return ms > 0 ? Date.now() + ms : null;
+// 新版 DOM：section[aria-label="Go usage limits"] 三张卡片
+// 卡内 progressbar[aria-label="Xxx usage used"] 的 aria-valuenow 是整数百分比；
+// 重置时间是 span[title="2026/10/6 15:03:54"]（本地时间绝对日期，语言无关）。
+function parseLocalDate(s) {
+  const m = String(s || '').match(/^(\d{4})[\/.\-](\d{1,2})[\/.\-](\d{1,2})[ T](\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (!m) { const t = new Date(s).getTime(); return Number.isFinite(t) ? t : null; }
+  return new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0)).getTime();
 }
 function scrapeDOM() {
+  const sec = document.querySelector('section[aria-label="Go usage limits"]')
+    || document.querySelector('section[aria-label*="usage"], section[aria-label*="Use"], section[aria-label*="限度"], section[aria-label*="限额"]');
+  if (!sec) return scrapeDOMLegacy();
+  const bars = sec.querySelectorAll('[role="progressbar"][aria-valuenow]');
+  if (!bars.length) return null;
+  const out = {};
+  let found = 0;
+  bars.forEach(bar => {
+    const label = bar.getAttribute('aria-label') || (bar.textContent || '');
+    const entry = SLOT_LABEL.find(e => e.re.test(label));
+    if (!entry || out[entry.key]) return;
+    const pc = parseFloat(bar.getAttribute('aria-valuenow'));
+    if (!Number.isFinite(pc)) return;
+    // 从进度条向上找卡片根（ 含 span[title] 时间戳作用域 ）
+    let card = bar;
+    for (let up = 0; up < 4 && card.parentElement; up++) {
+      card = card.parentElement;
+      if (card.querySelector && card.querySelector('span[title]')) break;
+    }
+    const resetEl = card && card.querySelector('span[title]');
+    const txt = (card && card.textContent) || '';
+    out[entry.key] = {
+      percent: Math.min(100, Math.max(0, pc)),
+      status: /限流|超限|已用完|rate-limited|limited/i.test(txt) ? 'rate-limited' : 'ok',
+      resetsAt: resetEl ? parseLocalDate(resetEl.getAttribute('title')) : parseDuration(txt)
+    };
+    found++;
+  });
+  return found ? out : scrapeDOMLegacy();
+}
+// 旧版 /workspace 页面兜底：data-slot 语义标签
+function scrapeDOMLegacy() {
   const items = document.querySelectorAll('[data-slot="usage-item"]');
   if (!items.length) return null;
   const out = {};
@@ -297,8 +328,51 @@ function scrapeDOM() {
   });
   return found ? out : null;
 }
-function scrape() {
-  return scrapeHydration() || scrapeDOM();
+// 中文（4 小时 1 分钟 / 6 天 14 小时）+ 英文（1 hour 21 minutes）都认
+function parseDuration(t) {
+  const s = String(t || '');
+  const num = (re, mul) => {
+    const x = s.match(re);
+    return x ? parseFloat(x[1]) * mul : 0;
+  };
+  const ms = num(/(\d+(?:\.\d+)?)\s*周/i, 7 * 86400000)
+    + num(/(\d+(?:\.\d+)?)\s*天/i, 86400000)
+    + num(/(\d+(?:\.\d+)?)\s*(?:小时|时)/i, 3600e3)
+    + num(/(\d+(?:\.\d+)?)\s*(?:分钟|分)/i, 60e3)
+    + num(/(\d+(?:\.\d+)?)\s*秒/i, 1000)
+    + num(/(\d+(?:\.\d+)?)\s*weeks?/i, 7 * 86400000)
+    + num(/(\d+(?:\.\d+)?)\s*days?/i, 86400000)
+    + num(/(\d+(?:\.\d+)?)\s*hours?/i, 3600e3)
+    + num(/(\d+(?:\.\d+)?)\s*(?:minutes?|mins?)/i, 60e3)
+    + num(/(\d+(?:\.\d+)?)\s*seconds?/i, 1000);
+  return ms > 0 ? Date.now() + ms : null;
+}
+function scrapeDOMold() {
+  const items = document.querySelectorAll('[data-slot="usage-item"]');
+  if (!items.length) return null;
+  const out = {};
+  let found = 0;
+  items.forEach(item => {
+    const labelEl = item.querySelector('[data-slot="usage-label"]');
+    const label = (labelEl && labelEl.textContent) || '';
+    const entry = SLOT_LABEL.find(e => e.re.test(label));
+    if (!entry || out[entry.key]) return;
+    const valEl = item.querySelector('[data-slot="usage-value"]');
+    const pc = parseFloat((((valEl && valEl.textContent) || '').replace(/[^0-9.]/g, '')));
+    if (!Number.isFinite(pc)) return;
+    const rstEl = item.querySelector('[data-slot="reset-time"]');
+    const txt = item.textContent || '';
+    out[entry.key] = {
+      percent: Math.min(100, Math.max(0, pc)),
+      status: /限流|超限|已用完|rate-limited/i.test(txt) ? 'rate-limited' : 'ok',
+      resetsAt: parseDuration(rstEl ? rstEl.textContent : txt)
+    };
+    found++;
+  });
+  return found ? out : null;
+}
+async function scrape() {
+  return (await fetchAPIUsage()) || (scrapeDOM() || scrapeDOMold());
 }
 
 /* ---------- render：样式全内联，不污染官方页面 ---------- */
@@ -349,9 +423,9 @@ function escHtml(s) {
 }
 
 /* ---------- main loop ---------- */
-function tick() {
+async function tick() {
   try {
-    const data = scrape();
+    const data = await scrape();
     if (!data) return; // 官方改版或未渲染：静默
     recordHistory(data);
     renderBanner(analyzeGo(data));

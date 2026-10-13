@@ -323,6 +323,10 @@
     <div class="hactions">
       <span class="status" id="status" title="数据状态"><span class="dot" id="status-dot"></span><span id="status-text">加载中…</span></span>
       <span class="status" id="peak-pill" title="DeepSeek 计费时段"><span class="dot" id="peak-dot"></span><span id="peak-text">…</span><span class="muted" id="peak-next"></span></span>
+      <a class="btn" href="zen.html" title="Zen 免费模型与隐私" id="zen-btn">
+        <svg viewBox="0 0 24 24"><path d="M12 3l2.6 5.6 6.1.8-4.5 4.2 1.2 6-5.4-3-5.4 3 1.2-6L3.3 9.4l6.1-.8z"/></svg>
+        <span id="zen-label">Zen 免费</span>
+      </a>
       <a class="btn" href="usage.html" title="查看用量" id="usage-btn">
         <svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15v3M12 10v8M17 6v12"/></svg>
         <span id="usage-label">用量</span>
@@ -406,7 +410,7 @@
     <ul id="privacy-notes" style="margin-top:0"></ul>
     <div class="src">
       <span><span id="src-label"></span><a id="doc-link" href="https://opencode.ai/docs/zh-cn/go" target="_blank" rel="noopener"></a></span>
-      <span><span id="snap-label"></span><span id="snapshot-date">2026-09-14</span></span>
+      <span><span id="snap-label"></span><span id="snapshot-date"></span></span>
       <span><span id="console-pre"></span><a id="console-link" href="https://opencode.ai/auth" target="_blank" rel="noopener"></a><span id="console-post"></span></span>
     </div>
   </footer>
@@ -431,9 +435,10 @@ const SERIES_COLORS = {
   "Qwen": "#f87171",
   "DeepSeek": "#34d399",
   "Hy": "#a78bfa",
+  "Space Bunny": "#7dd3fc",
   "其他": "#94a3b8"
 };
-const SERIES_ORDER = ["Grok","GPT","GLM","Kimi","LongCat","MiMo","MiniMax","Muse Spark","Qwen","DeepSeek","Hy","其他"];
+const SERIES_ORDER = ["Grok","GPT","GLM","Kimi","LongCat","MiMo","MiniMax","Muse Spark","Qwen","DeepSeek","Hy","Space Bunny","其他"];
 const SERIES_RULES = [
   ["muse spark", "Muse Spark"],
   ["grok", "Grok"],
@@ -445,13 +450,16 @@ const SERIES_RULES = [
   ["minimax", "MiniMax"],
   ["qwen", "Qwen"],
   ["deepseek", "DeepSeek"],
-  ["hy", "Hy"]
+  ["hy", "Hy"],
+  // 2026-10-07 官方新增模型 Space Bunny；detectSeries 用 startsWith，所以名字要完整匹配
+  ["space bunny", "Space Bunny"]
 ];
 
 function parseUsd(cell) {
   if (cell == null) return null;
   const s = String(cell).replace(/\\/g, "").trim();
   if (!s || /^[-—–]+$/.test(s)) return null;
+  if (/^free$/i.test(s) || /^免费$/.test(s)) return 0;
   const m = s.replace(/[^0-9.]/g, "");
   if (!m) return null;
   const v = parseFloat(m);
@@ -481,6 +489,14 @@ function parseAllowanceCell(cell) {
   let s = cell == null ? "" : String(cell);
   s = s.replace(/<del[^>]*>([\s\S]*?)<\/del>/gi, "~~$1~~").replace(/\\/g, "").trim();
   if (!s || /^[-—–]+$/.test(s)) return { allowance: null, promoOld: null, promoNote: "" };
+  const plain = s.replace(/<[^>]+>/g, " ").replace(/\*/g, "").trim();
+  // 无限制额度（如 Union Alpha Free "**无限制**<br /><small>限时</small>"）：
+  // 用 9999 这个哨兵值表示"+∞"，排序/折算都适用，渲染层显示为「不限」
+  if (/无限制|无限|不限量|不限|免费额度|unlimited|unbounded/i.test(plain)) {
+    const sm = s.match(/<small[^>]*>([\s\S]*?)<\/small>/i);
+    const note = sm ? sm[1].replace(/<[^>]+>/g, "").trim() : "";
+    return { allowance: 9999, promoOld: null, promoNote: note };
+  }
   const nums = [];
   const re = /\d+(?:\.\d+)?/g;
   let m;
@@ -792,27 +808,31 @@ const SNAPSHOT_RAW = [
   ["GLM-5.3-Flash", 0.15, 0.50, 0.03, null, 60],
   ["GLM-5.3", 1.40, 4.40, 0.26, null, 15],
   ["GLM-5.2", 1.40, 4.40, 0.26, null, 60],
-  ["GLM-5.1", 1.40, 4.40, 0.26, null, 60],
   ["Kimi K3", 3.00, 15.00, 0.30, null, 15],
   ["Kimi K2.7 Code", 0.95, 4.00, 0.19, null, 60],
   ["Kimi K2.6", 0.95, 4.00, 0.16, null, 60],
   ["LongCat-2.0", 0.30, 1.20, 0.006, null, 60],
-  ["MiMo V2.5", 0.14, 0.28, 0.0028, null, 60],
-  ["MiMo V2.5 Pro", 0.435, 0.87, 0.003625, null, 15],
+  // 2026-10-07 官方新增：Go 版不限额度的免费模型（价格列在文档里写「免费/免费/免费」）
+  ["LongCat 2.5 Preview Free", 0, 0, 0, null, [9999, null, "限时"]],
+  ["Step 5 Preview Free", 0, 0, 0, null, [9999, null, "限时"]],
+  // 2026-10-07 官方新增
+  ["MiMo-V2.6-Flash", 0.14, 0.28, 0.0028, null, 60],
+  ["MiMo-V2.6-Pro", 0.435, 0.87, 0.003625, null, 15],
+  // 2026-10-07 官方改名：MiMo V2.5 → MiMo-V2.5、MiMo V2.5 Pro → MiMo-V2.5-Pro（价格不变）
+  ["MiMo-V2.5", 0.14, 0.28, 0.0028, null, 60],
+  ["MiMo-V2.5-Pro", 0.435, 0.87, 0.003625, null, 15],
   ["MiniMax M3", 0.30, 1.20, 0.06, null, 60],
   ["MiniMax M2.7", 0.30, 1.20, 0.06, 0.375, 60],
-  ["MiniMax M2.5", 0.30, 1.20, 0.06, 0.375, 60],
   ["Muse Spark 1.3 Contributor", 0.10, 0.20, 0.002, null, 60],
   ["Muse Spark 1.2 Contributor", 0.10, 0.20, 0.002, null, 60],
   ["Qwen3.8 Max", 2.00, 6.00, 0.25, 2.50, 15],
   ["Qwen3.8 Flash", 0.15, 0.47, 0.016, 0.20, 30],
-  ["Qwen3.7 Max", 2.50, 7.50, 0.50, 3.125, 30],
   ["Qwen3.7 Plus (≤ 256K tokens)", 0.40, 1.60, 0.04, 0.50, 60],
   ["Qwen3.7 Plus (> 256K tokens)", 1.20, 4.80, 0.12, 1.50, 60],
-  ["Qwen3.6 Plus (≤ 256K tokens)", 0.50, 3.00, 0.05, 0.625, 60],
-  ["Qwen3.6 Plus (> 256K tokens)", 2.00, 6.00, 0.20, 2.50, 60],
-  ["DeepSeek V4.1 Flash (Off-Peak)", 0.15, 0.60, 0.003, null, [60, 15, "4x · 9 月 20 日结束"]],
-  ["DeepSeek V4.1 Flash (Peak)", 0.30, 1.20, 0.006, null, [60, 15, "4x · 9 月 20 日结束"]],
+  // DeepSeek V4.1 Flash 的 4x 促销（原 $15 → $60）已于 2026-09-27 到期；
+  // go.mdx 现值就是 **$60**，故快照不再画划线原价、也不再挂「⚡限时」徽章。
+  ["DeepSeek V4.1 Flash (Off-Peak)", 0.15, 0.60, 0.003, null, 60],
+  ["DeepSeek V4.1 Flash (Peak)", 0.30, 1.20, 0.006, null, 60],
   ["DeepSeek V4 Pro (Off-Peak)", 0.66, 1.98, 0.022, null, 15],
   ["DeepSeek V4 Pro (Peak)", 1.32, 3.96, 0.044, null, 15],
   ["DeepSeek V4 Flash (Off-Peak)", 0.15, 0.60, 0.003, null, 30],
@@ -820,27 +840,36 @@ const SNAPSHOT_RAW = [
   ["DeepSeek V4 Flash Vision Exp (Off-Peak)", 0.15, 0.60, 0.003, null, 15],
   ["DeepSeek V4 Flash Vision Exp (Peak)", 0.30, 1.20, 0.006, null, 15],
   ["Hy4 preview", 0.834, 2.501, 0.042, null, 30],
-  ["Hy3", 0.14, 0.58, 0.035, null, 60]
+  ["Hy3", 0.14, 0.58, 0.035, null, 60],
+  // 2026-10-07 官方新增
+  ["Space Bunny", 0.15, 0.60, 0.03, null, 30],
+  ["Grok 4.7 (≤ 200K tokens)", 2.00, 6.00, 0.50, null, 15],
+  ["Grok 4.7 (> 200K tokens)", 4.00, 12.00, 1.00, null, 15],
+  ["GPT 6 Luna (≤ 272K tokens)", 0.10, 0.50, 0.01, 0.125, 15],
+  ["GPT 6 Luna (> 272K tokens)", 0.20, 0.75, 0.02, 0.25, 15],
+  ["Claude Haiku 5.5 (≤ 100K tokens)", 0.10, 0.50, 0.01, 0.125, 15],
+  ["Claude Haiku 5.5 (> 100K tokens)", 0.50, 2.50, 0.05, 0.625, 15]
 ];
 
 const PRIVACY_SNAPSHOT_TABLE = [
+  ["Grok 4.7", "不使用", "30 天"],
   ["Grok 4.6", "不使用", "30 天"],
+  ["GPT 6 Luna", "不使用", "30 天"],
   ["GPT 5.6 Luna", "不使用", "30 天"],
   ["GLM-5.3-Flash", "不使用", "0 天"],
   ["GLM-5.3", "不使用", "0 天"],
   ["GLM-5.2", "不使用", "0 天"],
-  ["GLM-5.1", "不使用", "0 天"],
   ["Kimi K3", "不使用", "0 天"],
   ["Kimi K2.7 Code", "不使用", "0 天"],
   ["Kimi K2.6", "不使用", "0 天"],
   ["LongCat-2.0", "不使用", "0 天"],
+  ["MiMo-V2.6-Pro", "不使用", "0 天"],
+  ["MiMo-V2.6-Flash", "不使用", "0 天"],
   ["MiMo-V2.5-Pro", "不使用", "0 天"],
   ["MiMo-V2.5", "不使用", "0 天"],
   ["Qwen3.8 Max", "不使用", "0 天"],
   ["Qwen3.8 Flash", "不使用", "0 天"],
-  ["Qwen3.7 Max", "不使用", "0 天"],
   ["Qwen3.7 Plus", "不使用", "0 天"],
-  ["Qwen3.6 Plus", "不使用", "0 天"],
   ["MiniMax M3", "不使用", "0 天"],
   ["MiniMax M2.7", "不使用", "0 天"],
   ["Muse Spark 1.3 Contributor", "是", "非 ZDR"],
@@ -850,56 +879,72 @@ const PRIVACY_SNAPSHOT_TABLE = [
   ["DeepSeek V4 Flash", "不使用", "0 天"],
   ["DeepSeek V4 Flash Vision Exp", "不使用", "0 天"],
   ["Hy4 preview", "不使用", "0 天"],
-  ["Hy3", "不使用", "0 天"]
+  ["Hy3", "不使用", "0 天"],
+  ["Space Bunny", "不使用", "0 天"],
+  ["LongCat 2.5 Preview Free", "不使用", "0 天"],
+  ["Step 5 Preview Free", "不使用", "0 天"],
+  ["Claude Haiku 5.5", "不使用", "30 天"]
 ];
 const PRIVACY_NOTES_SNAPSHOT = [
-  { model: "Grok 4.6", text: "ZDR 会禁用依赖所存储数据的重要 API 功能，包括有状态的 Responses API、Files and Collections 和 Batch API。" },
-  { model: "GPT 5.6 Luna", text: "所有 API 功能的使用都会生成滥用监控日志，并最多保留 30 天。" },
+  { model: "Grok 4.7/4.6", text: "ZDR 会禁用依赖所存储数据的重要 API 功能，包括有状态的 Responses API、Files and Collections 和 Batch API。" },
+  { model: "GPT 6 Luna / GPT 5.6 Luna", text: "所有 API 功能的使用都会生成滥用监控日志，并最多保留 30 天。" },
   { model: "Muse Spark 1.3 Contributor", text: "以允许使用你的提示词和补全结果训练未来的 Meta 模型为交换，token 价格可获得大幅折扣。仅在 Meta 的地理使用政策允许的地区提供。" },
   { model: "Muse Spark 1.2 Contributor", text: "以允许使用你的提示词和补全结果训练未来的 Meta 模型为交换，token 价格可获得大幅折扣。仅在 Meta 的地理使用政策允许的地区提供。" },
-  { model: "DeepSeek", text: "ZDR 协议每月续签。当前协议有效期至 2026 年 9 月 30 日。" }
+  { model: "Claude Haiku 5.5", text: "请求按 Anthropic 数据政策保留 30 天。" },
+  // 官方现行：ZDR 协议每月续签，有效期至 2026 年 10 月 31 日（快照 2026-09-21 时写的是 9 月 30 日，已过期）
+  { model: "DeepSeek", text: "ZDR 协议每月续签。当前协议有效期至 2026 年 10 月 31 日。" }
 ];
 const PRIVACY_NOTES_SNAPSHOT_EN = [
-  { model: "Grok 4.6", text: "ZDR disables important API features that depend on stored data, including the stateful Responses API, Files and Collections, and the Batch API." },
-  { model: "GPT 5.6 Luna", text: "Abuse monitoring logs are generated for all API feature usage and retained for up to 30 days." },
+  { model: "Grok 4.7/4.6", text: "ZDR disables important API features that depend on stored data, including the stateful Responses API, Files and Collections, and the Batch API." },
+  { model: "GPT 6 Luna / GPT 5.6 Luna", text: "Abuse monitoring logs are generated for all API feature usage and retained for up to 30 days." },
   { model: "Muse Spark 1.3 Contributor", text: "Heavily discounted token pricing in exchange for permission to use your prompts and completions to train future Meta models. Availability is limited to regions permitted by Meta's Geographic Use Policy." },
   { model: "Muse Spark 1.2 Contributor", text: "Heavily discounted token pricing in exchange for permission to use your prompts and completions to train future Meta models. Availability is limited to regions permitted by Meta's Geographic Use Policy." },
-  { model: "DeepSeek", text: "ZDR agreement is renewed monthly. The current agreement is valid through September 30, 2026." }
+  { model: "Claude Haiku 5.5", text: "Requests are retained for 30 days in accordance with Anthropic's Data Policies." },
+  // Official current term: ZDR agreement valid through October 31, 2026 (the snapshot's September 30 date has expired)
+  { model: "DeepSeek", text: "ZDR agreement is renewed monthly. The current agreement is valid through October 31, 2026." }
 ];
 
 const MODEL_ID_SNAPSHOT = {
+  // 2026-10-07 新增/改名，只增不删（已下线模型的残留 ID 无害，不会被匹配）
+  "Grok 4.7": "grok-4.7",
   "Grok 4.6": "grok-4.6",
+  "GPT 6 Luna": "gpt-6-luna",
   "GPT 5.6 Luna": "gpt-5.6-luna",
   "GLM-5.3-Flash": "glm-5.3-flash",
   "GLM-5.3": "glm-5.3",
   "GLM-5.2": "glm-5.2",
-  "GLM-5.1": "glm-5.1",
   "Kimi K3": "kimi-k3",
   "Kimi K2.7 Code": "kimi-k2.7-code",
   "Kimi K2.6": "kimi-k2.6",
   "LongCat-2.0": "longcat-2.0",
+  "LongCat 2.5 Preview Free": "longcat-2.5-preview-free",
+  "Step 5 Preview Free": "step-5-preview-free",
   "DeepSeek V4.1 Flash": "deepseek-v4.1-flash",
   "DeepSeek V4 Pro": "deepseek-v4-pro",
   "DeepSeek V4 Flash": "deepseek-v4-flash",
   "DeepSeek V4 Flash Vision Exp": "deepseek-v4-flash-vision-exp",
+  "MiMo-V2.6-Flash": "mimo-v2.6-flash",
+  "MiMo-V2.6-Pro": "mimo-v2.6-pro",
   "MiMo-V2.5": "mimo-v2.5",
   "MiMo-V2.5-Pro": "mimo-v2.5-pro",
   "MiniMax M3": "minimax-m3",
   "MiniMax M2.7": "minimax-m2.7",
-  "MiniMax M2.5": "minimax-m2.5",
   "Muse Spark 1.3 Contributor": "muse-spark-1.3-contributor",
   "Muse Spark 1.2 Contributor": "muse-spark-1.2-contributor",
   "Qwen3.8 Max": "qwen3.8-max",
   "Qwen3.8 Flash": "qwen3.8-flash",
-  "Qwen3.7 Max": "qwen3.7-max",
   "Qwen3.7 Plus": "qwen3.7-plus",
-  "Qwen3.6 Plus": "qwen3.6-plus",
   "Hy4 preview": "hy4-preview",
-  "Hy3": "hy3"
+  "Hy3": "hy3",
+  "Space Bunny": "space-bunny",
+  "Claude Haiku 5.5": "claude-haiku-5-5"
 };
 
 const SNAPSHOT = {
-  date: "2026-09-14",
+  // 快照日期=最后一次对照官方文档确认无其他改价的日期
+  // （2026-10-07 已对照 go.mdx：新增 8 行 / 下线 5 行 / 改名 2 处 / 留存行价格无变动）
+  // 2026-10-13 对照新地址 go.mdx 全量校准
+  date: "2026-10-13",
   rows: (() => {
     const rows = SNAPSHOT_RAW.map(r => {
       const row = normalizeRow(r);
@@ -914,8 +959,10 @@ const SNAPSHOT = {
   })()
 };
 
-const MDX_URL = "https://raw.githubusercontent.com/anomalyco/opencode/dev/packages/web/src/content/docs/zh-cn/go.mdx";
-const MDX_MIRROR_URL = "https://cdn.jsdelivr.net/gh/anomalyco/opencode@dev/packages/web/src/content/docs/zh-cn/go.mdx";
+// 2026-10-13 官方文档从 packages/web/.../zh-cn/go.mdx 迁移到 services/www/src/docs/content/console/go.mdx，
+// 渲染页同步迁到 /v2/docs/console/go/（旧地址 302 跳转至此）
+const MDX_URL = "https://raw.githubusercontent.com/anomalyco/opencode/dev/services/www/src/docs/content/console/go.mdx";
+const MDX_MIRROR_URL = "https://cdn.jsdelivr.net/gh/anomalyco/opencode@dev/services/www/src/docs/content/console/go.mdx";
 const SOURCES = [
   { key: "github", type: "mdx", url: MDX_URL },
   { key: "jsdelivr", type: "mdx", url: MDX_MIRROR_URL },
@@ -924,7 +971,8 @@ const SOURCES = [
   { key: "ghfast", type: "mdx", url: "https://ghfast.top/" + MDX_URL }
 ];
 
-const LS_CACHE = "opengo-pricing-v3";
+// v4：2026-10-07 快照整体翻新（新增/下线/改名），丢弃旧缓存让老用户重新解析一次官方文档
+const LS_CACHE = "opengo-pricing-v4";
 const LS_THEME = "opengo-theme";
 const LS_RATIO = "opengo-ratio-mode";
 const LS_CUR = "opengo-currency";
@@ -939,7 +987,7 @@ const state = {
   fetchedAt: "",
   online: false,
   peak: undefined,
-  sortKey: "input",
+  sortKey: "output",
   sortDir: 1,
   query: "",
   ratioMode: false,
@@ -960,6 +1008,7 @@ const I18N = {
     brandTitle: "OpenCode Go · 模型价格速查",
     brandSub: "每 1M tokens 单价与每月使用额度 · 从便宜到贵 · 每次打开自动同步官方最新数据",
     btnUsage: "用量", btnUsageTitle: "查看用量",
+    btnZen: "Zen 免费", btnZenTitle: "查看 Zen 免费模型与隐私条款",
     btnRefresh: "刷新数据",
     btnThemeLight: "浅色", btnThemeDark: "深色", btnThemeTitle: "切换主题",
     btnLangTitle: "切换语言 / Switch language",
@@ -1018,6 +1067,7 @@ const I18N = {
     brandTitle: "OpenCode Go · Model Pricing Guide",
     brandSub: "Per-1M-token prices & monthly quotas · sorted cheap to expensive · auto-synced from the official docs on every visit",
     btnUsage: "Usage", btnUsageTitle: "View usage",
+    btnZen: "Zen Free", btnZenTitle: "View Zen free models & privacy terms",
     btnRefresh: "Refresh",
     btnThemeLight: "Light", btnThemeDark: "Dark", btnThemeTitle: "Toggle theme",
     btnLangTitle: "切换语言 / Switch language",
@@ -1377,7 +1427,7 @@ function rowHtml(r, i) {
     '<span class="bar"><i style="width:' + Math.min(100, r.allowance / 60 * 100) + "%;background:" + tint(c, .75) + '"></i></span>';
   const allowCell = '<span class="allow">' +
     (r.promoOld != null ? '<span class="allow-old" title="' + esc(t("promoOldTitle")) + '">$' + r.promoOld + "</span>" : "") +
-    "<span>" + (r.allowance == null ? "—" : "$" + r.allowance) + "</span>" + allowBar + "</span>" +
+    "<span>" + (r.allowance == null ? "—" : (r.allowance >= 9999 ? "不限" : "$" + r.allowance)) + "</span>" + allowBar + "</span>" +
     (r.promoNote ? '<br><span class="badge b-promo" title="' + esc(t("promoBadgeTitle", { note: promoNoteLabel(r.promoNote) })) + '">⚡' + esc(promoNoteLabel(r.promoNote)) + "</span>" : "");
   return '<tr style="--c:' + c + '"' + (r.training ? ' class="is-train"' : "") + ">" +
     '<td class="rank">' + (i + 1) + "</td>" +
@@ -1550,7 +1600,7 @@ function renderRateNote() {
 
 function saveCache(rows, notes, when) {
   try {
-    localStorage.setItem(LS_CACHE, JSON.stringify({ v: 2, fetchedAt: when, rows, notes }));
+    localStorage.setItem(LS_CACHE, JSON.stringify({ v: 4, fetchedAt: when, rows, notes }));
   } catch (e) { /* storage unavailable */ }
 }
 
@@ -1559,7 +1609,7 @@ function loadCache() {
     const raw = localStorage.getItem(LS_CACHE);
     if (!raw) return null;
     const data = JSON.parse(raw);
-    if (!data || (data.v !== 3 && data.v !== 2 && data.v !== 1) || !Array.isArray(data.rows)) return null;
+    if (!data || data.v !== 4 || !Array.isArray(data.rows)) return null;
     return { fetchedAt: data.fetchedAt, rows: data.rows, notes: data.notes || null };
   } catch (e) { return null; }
 }
@@ -1668,9 +1718,11 @@ function applyLangUi() {
   const langBtn = $("#lang");
   langBtn.title = t("btnLangTitle");
   $("#lang-label").textContent = state.lang === "zh" ? "EN" : "中文";
-  const usageBtn = $("#usage-btn");
-  usageBtn.title = t("btnUsageTitle");
-  $("#usage-label").textContent = t("btnUsage");
+const usageBtn = $("#usage-btn");
+    usageBtn.title = t("btnUsageTitle");
+    $("#usage-label").textContent = t("btnUsage");
+    $("#zen-btn").title = t("btnZenTitle");
+    $("#zen-label").textContent = t("btnZen");
   $("#refresh-label").textContent = t("btnRefresh");
   $("#theme").title = t("btnThemeTitle");
   $("#status").title = t("statusTitle");
@@ -1785,7 +1837,11 @@ function bindEvents() {
     if (savedTheme) document.documentElement.dataset.theme = savedTheme;
     const bootLang = document.documentElement.getAttribute("data-lang");
     if (bootLang === "en" || bootLang === "zh") state.lang = bootLang;
-    state.ratioMode = localStorage.getItem(LS_RATIO) === "1";
+    // 2026-10-07 起默认「月费折算 + 按输出列升序」：sortKey 是 output、sortDir=1，
+    // 而 cmp() 走 effVal()，所以默认呈现的就是「输出折算价从小到大」。
+    // 用户手动切过的（价格模式 / 排序列 / 升降序）仍然以用户选择为准。
+    const savedRatio = localStorage.getItem(LS_RATIO);
+    state.ratioMode = savedRatio === null ? true : savedRatio === "1";
     state.currency = localStorage.getItem(LS_CUR) === "cny" ? "cny" : "usd";
     const rc = loadRateCache();
     if (rc) state.rate = rc;

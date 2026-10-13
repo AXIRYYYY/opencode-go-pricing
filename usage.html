@@ -207,6 +207,49 @@
   }
   #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
+  /* ---------- tabs ---------- */
+  .tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+  .tab{
+    display:inline-flex;align-items:center;gap:7px;
+    font:inherit;font-size:14px;font-weight:600;color:var(--muted);
+    background:var(--card);border:1px solid var(--border);
+    border-radius:999px;padding:9px 18px;cursor:pointer;
+    transition:all .18s ease;
+  }
+  .tab:hover{color:var(--text);border-color:var(--border-strong)}
+  .tab.active{
+    color:var(--text);border-color:rgba(99,102,241,.5);
+    background:linear-gradient(135deg,rgba(99,102,241,.20),rgba(34,211,238,.14));
+  }
+
+  /* ---------- model breakdown ---------- */
+  .mu-actions{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 4px}
+  .mu-window{font-size:13px;color:var(--muted);margin:10px 0 14px;line-height:1.8}
+  .mu-wins{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .mu-win{
+    font:inherit;font-size:13px;color:var(--muted);
+    background:var(--card);border:1px solid var(--border);
+    border-radius:9px;padding:7px 14px;cursor:pointer;transition:all .15s ease;
+  }
+  .mu-win:hover{color:var(--text)}
+  .mu-win.active{color:var(--text);border-color:rgba(99,102,241,.5);background:rgba(99,102,241,.14)}
+  .mtable{width:100%;border-collapse:collapse;font-size:13.5px}
+  .mtable caption{caption-side:top;text-align:left;font-size:14.5px;font-weight:700;padding:2px 0 10px;color:var(--text)}
+  .mtable th{
+    text-align:left;font-weight:600;color:var(--muted);font-size:12.5px;
+    padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap;
+  }
+  .mtable th.num,.mtable td.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+  .mtable td{padding:9px 10px;border-bottom:1px solid var(--border)}
+  .mtable td:first-child{font-weight:600}
+  .mtable tr.total td{font-weight:700;border-top:2px solid var(--border-strong);border-bottom:none;white-space:nowrap}
+  .mtable .mname{font-family:var(--mono);font-size:12.5px}
+  .mbwrap{display:flex;align-items:center;gap:8px;min-width:170px}
+  .mbbar{flex:1;height:6px;border-radius:4px;background:var(--bar-track);overflow:hidden}
+  .mbbar>i{display:block;height:100%;border-radius:4px;background:var(--accent)}
+  .mbnum{font-family:var(--mono);font-size:12.5px;min-width:52px;text-align:right}
+  .mu-note{font-size:12.5px;color:var(--muted);margin-top:10px;line-height:1.8}
+
   @media (max-width:860px){
     .hero3{grid-template-columns:1fr;max-width:340px;margin-left:auto;margin-right:auto}
     .krow{grid-template-columns:1fr}
@@ -246,6 +289,12 @@
     </div>
   </header>
 
+  <nav class="tabs" id="main-tabs">
+    <button class="tab active" data-tab="overview">总览</button>
+    <button class="tab" data-tab="models">分模型明细</button>
+  </nav>
+
+  <div id="tab-overview">
   <section class="hero" id="card-go">
     <div class="hero-head">
       <h2>OpenCode Go</h2>
@@ -296,10 +345,34 @@
       <p class="hint">
         Go Key 位置：本机 <code>~/.local/share/opencode/auth.json</code> 中 <code>"opencode-go"</code> 项的 key（或 Windows 下 <code>%USERPROFILE%\.local\share\opencode\auth.json</code>，以实际安装位置为准）。<br>
         Go 接口不允许浏览器跨域直连，因此 <b>Go 卡必须走本地代理</b>：在仓库目录运行 <code>python usage-proxy.py</code>（Key 通过环境变量 <code>OPENCODE_GO_KEY</code> / <code>DEEPSEEK_API_KEY</code> 或同目录 <code>usage-proxy.keys.json</code> 提供，详见 README），保持窗口开着即可；<b>Windows 电脑双击仓库里的 <code>start-proxy.bat</code> 运行也可</b>（首次会自动读取 Go Key 并提示输入 DeepSeek Key）。DeepSeek 卡可直连，代理仅作备用。<br>
+        「分模型明细」需要另外的<b>服务账号 Key（oc_sk 开头）</b>：Console 里建好服务账号 Key 后填进代理的 <code>usage-proxy.keys.json</code> 的 <code>OPENCODE_SERVICE_KEY</code> 字段并重启代理；明细 Key 只放代理端，不经浏览器。<br>
         安全提示：DeepSeek 官方条款不建议把 Key 放前端页面；本页仅做个人自用，Key 只经浏览器直发官方域名（或你自己的本地代理）。建议使用可随时 revoke 的 Key，勿分享带 Key 的页面状态。
       </p>
     </div>
   </details>
+  </div>
+
+  <div id="tab-models" hidden>
+  <section class="hero" id="card-models">
+    <div class="hero-head">
+      <h2>Go 分模型明细</h2>
+      <span class="badge b-mut" id="mu-updated">未加载</span>
+      <span class="sub">官方 Usage API 逐请求聚合 · 按真实重置时刻切窗</span>
+    </div>
+    <div class="mu-actions">
+      <button class="btn primary" id="mu-fetch">
+        <svg viewBox="0 0 24 24"><path d="M21.5 2v6h-6"/><path d="M2.5 22v-6h6"/><path d="M2 12a10 10 0 0 1 17.2-7L21.5 8"/><path d="M22 12a10 10 0 0 1-17.2 7L2.5 16"/></svg>
+        拉取明细（经本地代理）
+      </button>
+      <button class="btn" id="mu-import">导入本地 JSON / CSV</button>
+      <input type="file" id="mu-file" accept=".json,.csv,application/json,text/csv" multiple style="display:none">
+      <button class="btn danger" id="mu-clear">清空明细缓存</button>
+    </div>
+    <p class="mu-window" id="mu-window"></p>
+    <div class="mu-wins" id="mu-winbar"></div>
+    <div id="mu-body"><div class="empty-note">点上方「拉取明细」经本地代理拉取（需在 usage-proxy.keys.json 配 <code>OPENCODE_SERVICE_KEY</code>），或把 Console Logs 页导出的 JSON/CSV 文件拖进来。</div></div>
+  </section>
+  </div>
 
   <footer>
     <ul>
@@ -307,6 +380,7 @@
       <li>Go 接口返回的百分比取整到整数（如 5%，官方页面显示 5.9%），小数精度官方未开放；速度与外推采用多点回归计算以减小取整误差。</li>
       <li>DeepSeek 余额为账号级：多个 Key 分通道只能看到同一个余额，分不清各通道消耗（接口本身不提供）。</li>
       <li>DeepSeek 高峰时段为周一至周五 01:00–04:00 与 06:00–10:00 UTC（北京时间 09:00–12:00、14:00–18:00），其余时段（含周末）均为低峰价；顶部徽章与价格页同逻辑。</li>
+      <li>分模型明细按官方 Usage API 的逐请求 cost 上卷；各窗口起点取 Go 用量接口的 resetsAt 切分，与配额窗口一致。Go 卡未加载时按固定假设滚动估算（5h 回溯/周一 UTC 起/30 天前），标记为「估算」。</li>
     </ul>
   </footer>
 
@@ -317,7 +391,7 @@
 <script>
 'use strict';
 
-const GO_URL = 'https://opencode.ai/zen/go/v1/usage';
+const GO_URL = 'https://opencode.ai/inference/go/v1/usage';
 const DS_URL = 'https://api.deepseek.com/user/balance';
 const LS_KEYS = 'opengo-usage-keys-v1';
 const LS_PROXY = 'opengo-usage-proxy-v1';
@@ -340,11 +414,123 @@ const WINDOWS = [
   { key: 'weekly', label: '周', en: 'weekly' },
   { key: 'monthly', label: '月', en: 'monthly' }
 ];
+// 分模型明细（官方 Usage API / console Logs 导出）
+const LS_RECORDS = 'opengo-usage-records-v1';
+const REC_KEEP_MS = 35 * 86400e3;
+const REC_MAX = 20000;
+// 三档上限由「月基数 × 官方比例」推导，避免与 F_5H / F_WEEK / MONTHLY_DOLLARS 各写一份而漂移
+const LIMIT_DOLLARS = {
+  rolling: Math.round(MONTHLY_DOLLARS * F_5H),
+  weekly: Math.round(MONTHLY_DOLLARS * F_WEEK),
+  monthly: MONTHLY_DOLLARS
+};
+// 价格折算：官方 Usage API 的 cost_micro_cents 对 Go 订阅恒为 0，
+// 所以按「官方 Go 文档价格($/M tokens)」把 tokens 折成美元估算。
+// ⚠ 同步来源：本表是 index.html 那份官方 go.mdx 价格表的副本（同一来源、同一数值），
+//   官方改价后必须两边一起更新，否则分模型明细会按旧价折算、静默偏低。最后校对：2026-10-13。
+// 格式（三选一）：
+//   单档          {grid:显示名, off:{in,out,cache}}
+//   DeepSeek 双档 {grid:显示名, off:{...}, peak:{...}}          按请求发生时刻选高峰/低峰
+//   上下文分档     {grid:显示名, tiers:[{maxPrompt,in,out,cache}, ...]}
+//                 maxPrompt = 该档适用「prompt tokens（input + cacheRead）」的上限，最后一条用 Infinity
+// 说明：cacheWrite 官方对 Go 不计费（已实测对账），故不入表；
+//       上下文分档与 DeepSeek 高低峰在官方文档中不重叠，因此不需要同时处理两个维度。
+const GO_PRICES = {
+  'deepseek-v4.1-flash': { grid: 'DeepSeek V4.1 Flash', off: { in: 0.15, out: 0.60, cache: 0.003 }, peak: { in: 0.30, out: 1.20, cache: 0.006 } },
+  'deepseek-v4-flash': { grid: 'DeepSeek V4 Flash', off: { in: 0.15, out: 0.60, cache: 0.003 }, peak: { in: 0.30, out: 1.20, cache: 0.006 } },
+  'deepseek-flash': { grid: 'DeepSeek V4 Flash', off: { in: 0.15, out: 0.60, cache: 0.003 }, peak: { in: 0.30, out: 1.20, cache: 0.006 } },
+  'deepseek-v4flash-vision-exp': { grid: 'DeepSeek V4 Flash Vision Exp', off: { in: 0.15, out: 0.60, cache: 0.003 }, peak: { in: 0.30, out: 1.20, cache: 0.006 } }, // 历史观测到的无连字符写法，保留兼容
+  'deepseek-v4-flash-vision-exp': { grid: 'DeepSeek V4 Flash Vision Exp', off: { in: 0.15, out: 0.60, cache: 0.003 }, peak: { in: 0.30, out: 1.20, cache: 0.006 } }, // 官方文档 slug（2026-09-18 对照补齐）
+  'deepseek-v4-pro': { grid: 'DeepSeek V4 Pro', off: { in: 0.66, out: 1.98, cache: 0.022 }, peak: { in: 1.32, out: 3.96, cache: 0.044 } },
+  'glm-5.3-flash': { grid: 'GLM-5.3-Flash', off: { in: 0.15, out: 0.50, cache: 0.03 } },
+  'glm-5.3': { grid: 'GLM-5.3', off: { in: 1.40, out: 4.40, cache: 0.26 } },
+  'glm-5.2': { grid: 'GLM-5.2', off: { in: 1.40, out: 4.40, cache: 0.26 } },
+  'kimi-k3': { grid: 'Kimi K3', off: { in: 3.00, out: 15.00, cache: 0.30 } },
+  'kimi-k2.7-code': { grid: 'Kimi K2.7 Code', off: { in: 0.95, out: 4.00, cache: 0.19 } },
+  'kimi-k2.6': { grid: 'Kimi K2.6', off: { in: 0.95, out: 4.00, cache: 0.16 } },
+  'longcat-2.0': { grid: 'LongCat-2.0', off: { in: 0.30, out: 1.20, cache: 0.006 } },
+  'mimo-v2.5': { grid: 'MiMo V2.5', off: { in: 0.14, out: 0.28, cache: 0.0028 } },
+  'mimo-v2.5-pro': { grid: 'MiMo V2.5 Pro', off: { in: 0.435, out: 0.87, cache: 0.003625 } },
+  'minimax-m3': { grid: 'MiniMax M3', off: { in: 0.30, out: 1.20, cache: 0.06 } },
+  'minimax-m2.7': { grid: 'MiniMax M2.7', off: { in: 0.30, out: 1.20, cache: 0.06 } },
+  'qwen3.8-max': { grid: 'Qwen3.8 Max', off: { in: 2.00, out: 6.00, cache: 0.25 } },
+  'qwen3.8-flash': { grid: 'Qwen3.8 Flash', off: { in: 0.15, out: 0.47, cache: 0.016 } },
+  'hy4-preview': { grid: 'Hy4 preview', off: { in: 0.834, out: 2.501, cache: 0.042 } },
+  'hy3': { grid: 'Hy3', off: { in: 0.14, out: 0.58, cache: 0.035 } },
+  'muse-spark-1.3-contributor': { grid: 'Muse Spark 1.3 Contributor', off: { in: 0.10, out: 0.20, cache: 0.002 } },
+  'muse-spark-1.2-contributor': { grid: 'Muse Spark 1.2 Contributor', off: { in: 0.10, out: 0.20, cache: 0.002 } },
+  // —— 2026-09-18 对照官方 go.mdx 补齐（原先缺失，明细面板会显示「官方未公布价格，未折算」）——
+  'qwen3.7-plus': { grid: 'Qwen3.7 Plus', tiers: [
+    { maxPrompt: 256000, in: 0.40, out: 1.60, cache: 0.04 },
+    { maxPrompt: Infinity, in: 1.20, out: 4.80, cache: 0.12 }
+  ] },
+  'grok-4.6': { grid: 'Grok 4.6', tiers: [
+    { maxPrompt: 200000, in: 2.00, out: 6.00, cache: 0.50 },
+    { maxPrompt: Infinity, in: 4.00, out: 12.00, cache: 1.00 }
+  ] },
+  'gpt-5.6-luna': { grid: 'GPT 5.6 Luna', tiers: [
+    { maxPrompt: 272000, in: 0.20, out: 1.20, cache: 0.02 },
+    { maxPrompt: Infinity, in: 0.40, out: 1.80, cache: 0.04 }
+  ] },
+  // —— 2026-10-13 对照新地址 go.mdx 补齐 ——
+  'grok-4.7': { grid: 'Grok 4.7', tiers: [
+    { maxPrompt: 200000, in: 2.00, out: 6.00, cache: 0.50 },
+    { maxPrompt: Infinity, in: 4.00, out: 12.00, cache: 1.00 }
+  ] },
+  'gpt-6-luna': { grid: 'GPT 6 Luna', tiers: [
+    { maxPrompt: 272000, in: 0.10, out: 0.50, cache: 0.01 },
+    { maxPrompt: Infinity, in: 0.20, out: 0.75, cache: 0.02 }
+  ] },
+  'claude-haiku-5-5': { grid: 'Claude Haiku 5.5', tiers: [
+    { maxPrompt: 100000, in: 0.10, out: 0.50, cache: 0.01 },
+    { maxPrompt: Infinity, in: 0.50, out: 2.50, cache: 0.05 }
+  ] },
+  'mimo-v2.6-flash': { grid: 'MiMo-V2.6-Flash', off: { in: 0.14, out: 0.28, cache: 0.0028 } },
+  'mimo-v2.6-pro': { grid: 'MiMo-V2.6-Pro', off: { in: 0.435, out: 0.87, cache: 0.003625 } },
+  'space-bunny': { grid: 'Space Bunny', off: { in: 0.15, out: 0.60, cache: 0.03 } },
+  'longcat-2.5-preview-free': { grid: 'LongCat 2.5 Preview Free', off: { in: 0, out: 0, cache: 0 } },
+  'step-5-preview-free': { grid: 'Step 5 Preview Free', off: { in: 0, out: 0, cache: 0 } }
+};
+function priceOf(slug) {
+  if (!slug) return null;
+  const k = String(slug).toLowerCase();
+  if (GO_PRICES[k]) return GO_PRICES[k];
+  // 服务端路由名 frank/GLM-5.3-Flash 之类：取 / 后段再匹配
+  const tail = k.split('/').pop();
+  return GO_PRICES[tail] || null;
+}
+// 选档规则（对应上面 GO_PRICES 的三种格式）：
+//   ① 上下文分档（Grok 4.7 / Grok 4.6 / GPT 6 Luna / GPT 5.6 Luna / Claude Haiku 5.5 / Qwen3.7 Plus）：
+//      按本条请求的 prompt tokens = input + cacheRead 落在哪一档（官方口径为「≤ / > N tokens」）；
+//   ② DeepSeek 双档：按请求发生时刻是否高峰（周一至周五 01:00-04:00、06:00-10:00 UTC）；
+//   ③ 其余单档：直接取 off。
+function selectTier(p, toks, atMs) {
+  if (Array.isArray(p.tiers) && p.tiers.length) {
+    const prompt = (toks.input || 0) + (toks.cacheRead || 0);
+    for (const t of p.tiers) {
+      if (prompt <= t.maxPrompt) return t;
+    }
+    return p.tiers[p.tiers.length - 1];
+  }
+  if (p.peak && isDeepSeekPeak(new Date(atMs))) return p.peak;
+  return p.off;
+}
+// tokens → 美元估算。实测对账（Logs 导出 130 条）：
+// 官方 cost == input×in + output×out + cacheRead×cache，精确到小数点后 8 位；
+// reasoning tokens 不计费、cacheWrite 不计费；中断/失败的 0-cost 行无法从 Usage API 区分（无 outcome 列），默认计入，误差 <1%。
+function estimateCostUSD(slug, toks, atMs) {
+  const p = priceOf(slug);
+  if (!p) return null;
+  const tier = selectTier(p, toks, atMs);
+  if (!tier) return null;
+  return ((toks.input || 0) * tier.in + (toks.output || 0) * tier.out + (toks.cacheRead || 0) * tier.cache) / 1e6;
+}
 
 const state = {
   go: { status: 'idle', data: null, error: '', updatedAt: '', via: '' },
   ds: { status: 'idle', data: null, error: '', updatedAt: '', via: '' },
-  peak: undefined
+  peak: undefined,
+  mu: { status: 'idle', updated: '', error: '', source: '', win: 'monthly' }
 };
 
 const $ = s => document.querySelector(s);
@@ -543,7 +729,8 @@ function parseGo(body) {
     const w = usage && usage[key];
     if (w && typeof w.percent === 'number' && Number.isFinite(w.percent)) {
       out[key] = {
-        status: typeof w.status === 'string' ? w.status : 'ok',
+        // 与油猴脚本统一口径：不区分大小写地归一成 rate-limited / ok
+        status: /rate-limited/i.test(String(w.status || '')) ? 'rate-limited' : 'ok',
         percent: Math.max(0, Math.min(100, w.percent)),
         resetsAt: typeof w.resetsAt === 'string' ? w.resetsAt : ''
       };
@@ -886,6 +1073,330 @@ function renderDs() {
   }
 }
 
+/* ---------- tabs ---------- */
+function switchTab(name) {
+  document.querySelectorAll('#main-tabs .tab').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  $('#tab-overview').hidden = name !== 'overview';
+  $('#tab-models').hidden = name !== 'models';
+}
+
+/* ---------- records: store / parse ---------- */
+function loadRecords() {
+  try {
+    const d = JSON.parse(localStorage.getItem(LS_RECORDS) || '{}');
+    return d && typeof d === 'object' && !Array.isArray(d) ? d : {};
+  } catch (e) { return {}; }
+}
+function mergeRecords(list) {
+  const store = loadRecords();
+  let merged = 0;
+  for (const r of list) {
+    if (!r || !r.id || !r.model || !Number.isFinite(r.t)) continue;
+    if (!store[r.id]) merged++;
+    store[r.id] = [r.t, r.cost, r.token, r.model];
+  }
+  pruneRecords(store);
+  try { localStorage.setItem(LS_RECORDS, JSON.stringify(store)); } catch (e) { /* ignore */ }
+  return Object.keys(store).length;
+}
+function pruneRecords(store) {
+  const cutoff = Date.now() - REC_KEEP_MS;
+  for (const id of Object.keys(store)) {
+    if (store[id][0] < cutoff) delete store[id];
+  }
+  const ids = Object.keys(store).sort((a, b) => store[b][0] - store[a][0]);
+  for (let i = REC_MAX; i < ids.length; i++) delete store[ids[i]];
+}
+function recordsList() {
+  const store = loadRecords();
+  return Object.entries(store).map(([id, v]) => ({ id, t: v[0], cost: v[1], token: v[2], model: v[3] }));
+}
+function toNumber(v) {
+  if (v == null || v === '') return NaN;
+  const n = typeof v === 'number' ? v : parseFloat(String(v).replace(/[^0-9.eE+-]/g, ''));
+  return Number.isFinite(n) ? n : NaN;
+}
+function toTime(v) {
+  if (v == null) return NaN;
+  if (typeof v === 'number' && Number.isFinite(v)) return v;
+  const s = String(v);
+  if (/^\d{10,13}$/.test(s)) return parseInt(s, 10) < 4102444800 ? parseInt(s, 10) * 1000 : parseInt(s, 10);
+  const t = Date.parse(s);
+  return Number.isFinite(t) ? t : NaN;
+}
+function normalizeRecord(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  if (raw.product && raw.product !== 'go') return null;
+  if (raw.billing_source && raw.billing_source !== 'go') return null;
+  if (raw.provider && raw.provider !== 'opencode-go' && raw.provider !== 'opencode' && raw.product !== 'go') return null;
+  const model = (raw.requestedModel || raw.model || '');
+  if (!model) return null;
+  const t = toTime(raw.startedAt != null ? raw.startedAt : (raw.started_at != null ? raw.started_at : raw.created_at));
+  if (!Number.isFinite(t)) return null;
+  const tok = {
+    input: toNumber(raw.inputTokens != null ? raw.inputTokens : raw.input_tokens) || 0,
+    output: toNumber(raw.outputTokens != null ? raw.outputTokens : raw.output_tokens) || 0,
+    reasoning: toNumber(raw.reasoningTokens != null ? raw.reasoningTokens : raw.reasoning_tokens) || 0,
+    cacheRead: toNumber(raw.cacheReadTokens != null ? raw.cacheReadTokens : raw.cache_read_tokens) || 0,
+    cacheWrite: (toNumber(raw.cacheWriteTokens != null ? raw.cacheWriteTokens : raw.cache_write_tokens) || 0)
+      + (toNumber(raw.cache_write_5m_tokens) || 0) + (toNumber(raw.cache_write_1h_tokens) || 0)
+  };
+  let cost = toNumber(raw.cost);
+  let priced = Number.isFinite(cost);
+  const micro = toNumber(raw.cost_micro_cents);
+  // 官方口径（Console 用量文档）：cost_micro_cents 单位为“微美分”，1 美元 = 100,000,000，
+  // 因此要除以 1e8 才是美元（除 1e6 得到的是「美分」，会放大 100 倍）
+  if (!priced && Number.isFinite(micro) && micro > 0) { cost = micro / 1e8; priced = true; }
+  if (!priced) {
+    cost = estimateCostUSD(model, tok, t);
+    priced = Number.isFinite(cost);
+  }
+  const token = tok.input + tok.output + tok.reasoning + tok.cacheRead + tok.cacheWrite;
+  const id = raw.id || raw.requestID || (t + ':' + model + ':' + (priced ? cost.toFixed(6) : 'x'));
+  return { id, t, cost: priced ? cost : null, token, model };
+}
+function parseCSVRows(text) {
+  const rows = []; let row = []; let cur = ''; let q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) {
+      if (c === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else q = false; }
+      else cur += c;
+    } else if (c === '"') q = true;
+    else if (c === ',') { row.push(cur); cur = ''; }
+    else if (c === '\n') { row.push(cur.replace(/\r$/, '')); rows.push(row); row = []; cur = ''; }
+    else cur += c;
+  }
+  if (cur !== '' || row.length) { row.push(cur.replace(/\r$/, '')); rows.push(row); }
+  return rows;
+}
+function parseRecordsText(text, name) {
+  const s = String(text).trim();
+  if (!s) throw new Error('文件为空');
+  if (s[0] === '{' || s[0] === '[') {
+    let j;
+    try { j = JSON.parse(s); } catch (e) { throw new Error(name + ' 不是有效的 JSON'); }
+    const items = Array.isArray(j) ? j : (j.items || (j.data && j.data.items) || []);
+    if (!Array.isArray(items)) throw new Error(name + ' 缺少 items 数组');
+    const recs = items.map(normalizeRecord).filter(Boolean);
+    if (!recs.length) throw new Error(name + ' 里没有可用的 Go 请求记录');
+    return recs;
+  }
+  const rows = parseCSVRows(s);
+  if (rows.length < 2) throw new Error(name + ' 的 CSV 无数据行');
+  const head = rows[0];
+  const col = h => head.indexOf(h);
+  const first = (...hs) => { for (const h of hs) { const i = col(h); if (i >= 0) return i; } return -1; };
+  const iModel = first('requestedModel', 'model');
+  const iCost = first('cost', 'cost_micro_cents');
+  const iTime = first('startedAt', 'started_at', 'created_at');
+  const iProd = col('product');
+  const iBill = col('billing_source');
+  const iProv = col('provider');
+  const iTok = [ first('inputTokens', 'input_tokens'), first('outputTokens', 'output_tokens'),
+    first('reasoningTokens', 'reasoning_tokens'), first('cacheReadTokens', 'cache_read_tokens'),
+    first('cacheWriteTokens', 'cache_write_tokens') ];
+  const iTok5 = col('cache_write_5m_tokens'), iTok1h = col('cache_write_1h_tokens');
+  const iId = [ col('id'), col('requestID') ].find(i => i >= 0);
+  if (iModel < 0 || iCost < 0 || iTime < 0) throw new Error(name + ' 的 CSV 缺少 model/cost/startedAt 列');
+  const recs = [];
+  for (let r = 1; r < rows.length; r++) {
+    const cells = rows[r];
+    if (iProd >= 0 && String(cells[iProd]).toLowerCase() !== 'go') continue;
+    if (iBill >= 0 && String(cells[iBill]).toLowerCase() !== 'go') continue;
+    if (iProv >= 0 && !/opencode(-go)?/i.test(String(cells[iProv] || ''))) continue;
+    const costCell = cells[iCost];
+    const rec = normalizeRecord({
+      id: iId >= 0 ? cells[iId] : undefined,
+      requestedModel: cells[iModel],
+      startedAt: cells[iTime],
+      cost: head[iCost] === 'cost' ? costCell : undefined,
+      cost_micro_cents: head[iCost] === 'cost_micro_cents' ? costCell : undefined,
+      inputTokens: iTok[0] >= 0 ? cells[iTok[0]] : undefined,
+      outputTokens: iTok[1] >= 0 ? cells[iTok[1]] : undefined,
+      reasoningTokens: iTok[2] >= 0 ? cells[iTok[2]] : undefined,
+      cacheReadTokens: iTok[3] >= 0 ? cells[iTok[3]] : undefined,
+      cacheWriteTokens: iTok[4] >= 0 ? cells[iTok[4]] : undefined,
+      cache_write_5m_tokens: iTok5 >= 0 ? cells[iTok5] : undefined,
+      cache_write_1h_tokens: iTok1h >= 0 ? cells[iTok1h] : undefined
+    });
+    if (rec) recs.push(rec);
+  }
+  if (!recs.length) throw new Error('没有解析出 Go 记录（CSV 里可能只有非 Go 请求）');
+  return recs;
+}
+
+/* ---------- records: window starts & aggregation ---------- */
+function windowStarts() {
+  const now = Date.now();
+  const d = state.go.data;
+  const starts = {};
+  let est = false;
+  // resetsAt 是窗口【结束】时刻（未来重置点），起点 = 结束 − 窗长；
+  // 月窗不是固定 30 天（订阅周年），按 30 天回溯近似，UI 上会标注
+  const OFFSET = { rolling: 5 * 3600e3, weekly: 7 * 86400e3, monthly: 30 * 86400e3 };
+  for (const { key } of WINDOWS) {
+    const t = d && d[key] ? toTime(d[key].resetsAt) : NaN;
+    if (Number.isFinite(t)) { starts[key] = t - OFFSET[key]; continue; }
+    est = true;
+    if (key === 'rolling') starts[key] = now - 5 * 3600e3;
+    else if (key === 'weekly') {
+      const day = new Date(now).getUTCDay();
+      starts[key] = now - (now % 86400e3) - ((day + 6) % 7) * 86400e3;
+    } else starts[key] = now - 30 * 86400e3;
+  }
+  return { starts, estimated: est };
+}
+function aggregateWindow(recs, startTs) {
+  const by = new Map();
+  let total = 0, n = 0, tok = 0, unpriced = 0;
+  for (const r of recs) {
+    if (r.t < startTs) continue;
+    const b = by.get(r.model) || { model: r.model, cost: 0, n: 0, token: 0, unpriced: 0 };
+    if (r.cost != null) { b.cost += r.cost; total += r.cost; }
+    else { b.unpriced++; unpriced++; }
+    b.n++;
+    if (Number.isFinite(r.token)) { b.token += r.token; tok += r.token; }
+    by.set(r.model, b);
+    n++;
+  }
+  const rows = Array.from(by.values()).sort((a, b) => b.cost - a.cost);
+  return { rows, total, n, token: tok, unpriced };
+}
+function fmtUsd(v) {
+  return '$' + (v >= 100 ? v.toFixed(1) : v >= 1 ? v.toFixed(2) : v.toFixed(4));
+}
+
+/* ---------- models render ---------- */
+function renderModels() {
+  const s = state.mu;
+  const badge = $('#mu-updated');
+  if (s.status === 'ready') {
+    badge.className = 'badge b-ok';
+    badge.textContent = '已加载 ' + (s.updated ? timeStr(s.updated) : '') + (s.source ? ' · ' + s.source : '');
+  } else if (s.status === 'loading') {
+    badge.className = 'badge b-mut';
+    badge.textContent = '处理中…';
+  } else if (s.status === 'error') {
+    badge.className = 'badge b-err';
+    badge.textContent = '加载失败';
+    $('#mu-body').innerHTML = '<div class="err-note">' + esc(s.error) + '</div>';
+    $('#mu-window').textContent = '';
+    $('#mu-winbar').innerHTML = '';
+    return;
+  } else {
+    badge.className = 'badge b-mut';
+    badge.textContent = '未加载';
+    $('#mu-window').textContent = '';
+    $('#mu-winbar').innerHTML = '';
+    return;
+  }
+  const all = recordsList();
+  if (!all.length) { badge.className = 'badge b-mut'; badge.textContent = '缓存为空'; return; }
+  const { starts, estimated } = windowStarts();
+  const win = s.win || 'monthly';
+  const fmtW = key => {
+    const t = new Date(starts[key]);
+    return t.toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  };
+  $('#mu-window').innerHTML = '窗口起点（结束 resetsAt 减窗长；月窗按 30 天回溯近似）：<code>5h ' + esc(fmtW('rolling'))
+    + '</code> · <code>周 ' + esc(fmtW('weekly')) + '</code> · <code>月 ' + esc(fmtW('monthly')) + '</code>'
+    + (estimated ? ' —— <b>部分窗口未被 Go 卡校准，为估算起点</b>' : '')
+    + '<span>（缓存 ' + all.length + ' 条，覆盖近 '
+    + Math.ceil((Date.now() - Math.min.apply(null, all.map(r => r.t))) / 86400e3) + ' 天）</span>';
+  $('#mu-winbar').innerHTML = WINDOWS.map(({ key, label }) =>
+    '<button class="mu-win' + (key === win ? ' active' : '') + '" data-win="' + key + '">' + label + ' · 上限 ' + fmtUsd(LIMIT_DOLLARS[key]) + '</button>'
+  ).join('');
+  const a = aggregateWindow(all, starts[win]);
+  const limit = LIMIT_DOLLARS[win];
+  const rowsHtml = a.rows.map(b => {
+    const pct = b.cost / limit * 100;
+    const color = pct >= 90 ? 'var(--err)' : pct >= 60 ? 'var(--warn)' : 'var(--accent)';
+    const avg = b.n > 0 ? b.cost / b.n : NaN;
+    const grid = priceOf(b.model);
+    const unknown = !grid;
+    const costCell = (unknown && b.cost === 0) ? '—' : (b.unpriced > 0 ? '≈' : '') + fmtUsd(b.cost);
+    const show = (grid ? grid.grid : b.model) + (unknown ? '（官方未公布价格，未折算）' : '');
+    return '<tr><td class="mname">' + esc(show) + '</td><td class="num">' + b.n.toLocaleString('zh-CN') + '</td>'
+      + '<td class="num">' + b.token.toLocaleString('zh-CN') + '</td>'
+      + '<td class="num">' + costCell + '</td>'
+      + '<td><div class="mbwrap"><div class="mbbar"><i style="width:' + Math.min(100, pct).toFixed(2) + '%;background:' + color + '"></i></div>'
+      + '<span class="mbnum">' + (pct > 0 && pct < 0.1 ? '<0.1%' : num1(pct) + '%') + '</span></div></td>'
+      + '<td class="num">' + ((unknown && b.cost === 0) || !Number.isFinite(avg) ? '—' : fmtUsd(avg)) + '</td></tr>';
+  }).join('');
+  const totalPct = a.total / limit * 100;
+  const offPct = state.go.data && state.go.data[win] ? Math.round(state.go.data[win].percent) + '%' : '—';
+  $('#mu-body').innerHTML =
+    '<table class="mtable"><caption>' + WINDOWS.find(w => w.key === win).label + '窗口（上限 ' + fmtUsd(limit) + '）</caption>'
+    + '<thead><tr><th>模型</th><th class="num">请求数</th><th class="num">Tokens</th><th class="num">花费</th><th>占配额</th><th class="num">均价</th></tr></thead>'
+    + (rowsHtml || '<tr><td colspan="6" style="text-align:center;color:var(--muted)">该窗口内无记录</td></tr>')
+    + '<tr class="total"><td>合计</td><td class="num">' + a.n.toLocaleString('zh-CN') + '</td>'
+    + '<td class="num">' + a.token.toLocaleString('zh-CN') + '</td>'
+    + '<td class="num">' + fmtUsd(a.total) + '</td>'
+    + '<td><div class="mbwrap"><div class="mbbar"><i style="width:' + Math.min(100, totalPct).toFixed(2) + '%"></i></div>'
+    + '<span class="mbnum">' + (a.unpriced > 0 ? '≈' : '') + num1(totalPct) + '%</span></div></td><td class="num"></td></tr>'
+    + '</table>'
+    + '<p class="mu-note">口径说明：官方 Usage API 对 Go 订阅的 <code>cost_micro_cents</code> 恒为 0，'
+    + '所以页面用官方 Go 文档价格($/M tokens)按 tokens 折算：input×input价 + output×output价 + cacheRead×cache价；'
+    + '实测 130 条对账：reasoning/cacheWrite 不计费，中断的 0-cost 行因 Usage API 无 outcome 列而无法剔除（会让估计偏高约 +1pp，方向偏保守）。'
+    + (a.unpriced > 0 ? '其中 ' + a.unpriced + ' 条因模型价格未知未计入（如 omen-alpha 罩名模型）。' : '')
+    + '合计 ' + (a.unpriced > 0 ? '≈' : '') + num1(totalPct) + '% = 窗口内请求折算 cost 之和 ÷ ' + fmtUsd(limit)
+    + '；官方卡片当前显示 ' + esc(offPct)
+    + '，以官方口径为准（二者可能有小差异：个别请求延迟入账、退款或官方统计口径不同）。</p>';
+}
+
+async function fetchMuRecords(manual) {
+  const hadCache = Object.keys(loadRecords()).length > 0;
+  state.mu.status = 'loading'; state.mu.error = '';
+  renderModels();
+  const range = hadCache ? '24h' : '7d';
+  try {
+    const root = proxyBase().replace(/\/+$/, '');
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 90000);
+    let text;
+    try {
+      const r = await fetch(root + '/api/go/records?range=' + range, { signal: ctl.signal, cache: 'no-store' });
+      if (!r.ok) {
+        const err = new Error('HTTP ' + r.status);
+        err.code = 'HTTP_' + r.status;
+        try { err.body = await r.json(); } catch (e) { /* ignore */ }
+        throw err;
+      }
+      text = await r.text();
+    } finally { clearTimeout(timer); }
+    const recs = parseRecordsText(text, 'Usage API(' + range + ')');
+    if (!recs.length) throw new Error('明细接口无可用记录');
+    mergeRecords(recs);
+    state.mu = { status: 'ready', updated: new Date().toISOString(), error: '', source: '代理·' + range, win: state.mu.win || 'monthly' };
+    renderModels();
+    if (manual) toast('已拉取 ' + recs.length + ' 条明细');
+  } catch (e) {
+    let msg;
+    if (e && e.code === 'HTTP_503' && e.body && e.body.error === 'missing_key') {
+      msg = '本地代理缺少服务账号 Key：给 usage-proxy.keys.json 加 OPENCODE_SERVICE_KEY 后重启 usage-proxy.py';
+    } else if (e && e.code === 'HTTP_401') {
+      msg = '服务账号 Key 无效（401），请检查 OPENCODE_SERVICE_KEY';
+    } else {
+      msg = errText(e, '明细');
+    }
+    state.mu = { status: 'error', updated: '', error: msg, source: '', win: state.mu.win };
+    renderModels();
+    if (manual) toast('明细拉取失败');
+  }
+}
+
+async function importMuFiles(files) {
+  const reads = Array.from(files).map(f => f.text().then(t => parseRecordsText(t, f.name)));
+  let total = 0;
+  for (const p of reads) {
+    try { total = mergeRecords(await p); } catch (err) { toast(err.message || '导入失败'); }
+  }
+  state.mu = { status: Object.keys(loadRecords()).length ? 'ready' : 'idle', updated: new Date().toISOString(), error: '', source: '手动导入', win: state.mu.win || 'monthly' };
+  renderModels();
+  if (total) toast('导入完成，缓存 ' + total + ' 条');
+}
+
 /* ---------- actions ---------- */
 let refreshing = false;
 function setRefreshing(on) {
@@ -941,6 +1452,8 @@ async function refreshAll(manual) {
   }
   await Promise.all(jobs);
   if (state.go.status === 'ready' && state.go.data) recordHistory(state.go.data);
+  // 仅在「用量明细」标签可见时重渲染：标签隐藏时数据没变，没必要重解析整个缓存
+  if (state.mu.status === 'ready' && !$('#tab-models').hidden) { state.mu.status = 'ready'; renderModels(); }
   setRefreshing(false);
   if (manual) {
     const ok = (!goK && !proxyBase() || state.go.status === 'ready') && (!dsK && !proxyBase() || state.ds.status === 'ready');
@@ -951,6 +1464,24 @@ async function refreshAll(manual) {
 function bindEvents() {
   $('#refresh').addEventListener('click', () => refreshAll(true));
   $('#theme').addEventListener('click', toggleTheme);
+  document.querySelectorAll('#main-tabs .tab').forEach(b =>
+    b.addEventListener('click', () => { switchTab(b.dataset.tab); if (b.dataset.tab === 'models') renderModels(); })
+  );
+  $('#mu-fetch').addEventListener('click', () => fetchMuRecords(true));
+  $('#mu-import').addEventListener('click', () => $('#mu-file').click());
+  $('#mu-file').addEventListener('change', e => { if (e.target.files && e.target.files.length) importMuFiles(e.target.files); e.target.value = ''; });
+  $('#mu-winbar').addEventListener('click', e => {
+    const b = e.target.closest('.mu-win');
+    if (!b) return;
+    state.mu.win = b.dataset.win;
+    renderModels();
+  });
+  $('#mu-clear').addEventListener('click', () => {
+    try { localStorage.removeItem(LS_RECORDS); } catch (err) { /* ignore */ }
+    state.mu = { status: 'idle', updated: '', error: '', source: '', win: 'monthly' };
+    renderModels();
+    toast('明细缓存已清空');
+  });
   $('#save-keys').addEventListener('click', () => {
     const goK = $('#in-go').value.trim();
     const dsK = $('#in-ds').value.trim();

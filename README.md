@@ -15,8 +15,9 @@ A zero-dependency, single-file web page that aggregates every [OpenCode Go](http
 ## Features
 
 - **Always current**: re-syncs the official docs on every visit, with a multi-level fallback chain (GitHub raw → jsDelivr → ghproxy / gh-proxy / ghfast mirrors)
-- **Sort & search**: click any column header to sort (input price ascending by default); search across models, series and tiers
-- **Series legend**: 11 color-coded model series; click to filter
+- **Sorted by the output column's fee-equivalent price (cheap → expensive) by default** (list price ÷ monthly quota × $10); a manual switch is remembered
+- **Sort & search**: click any column header to sort; search across models, series and tiers
+- **Series legend**: 13 color-coded model series; click to filter
 - **DeepSeek peak/off-peak**: live billing-window badge with countdown, per-tier rows (Off-Peak / Peak, ≤200K / >200K), and a "live" marker on the tier currently in effect
 - **Fee-equivalent mode**: list price ÷ monthly quota × $10 — the effective unit price when your full quota is used, directly comparable with pay-as-you-go platforms
 - **USD / CNY toggle** with live FX rates — the conversion rate is labeled next to the toggle while CNY is active (cached fallback included)
@@ -24,6 +25,20 @@ A zero-dependency, single-file web page that aggregates every [OpenCode Go](http
 - **Privacy column**: training / retention info parsed from the official privacy table, plus privacy filters
 - **Bilingual UI (EN / ZH)**: auto-detected from the browser, switchable in the header; force with `?lang=en` or `?lang=zh`
 - **Offline-friendly**: localStorage cache + built-in snapshot; dark / light theme; responsive layout
+
+## Zen free models page (`zen.html`)
+
+A companion page listing **only the current limited-time free models**, focused on privacy:
+
+- **Free is not private**: the 13 free models are split into four tiers taken from the official privacy section, sorted **zero-retention first**
+  - 🟢 Zero retention, no training (2) — not listed among the official exceptions, so the default zero-retention policy applies
+  - 🔵 Not trained, but retained per vendor policy (1 — Jev)
+  - 🟠 Vendor trial endpoints that log usage; the docs explicitly say "do not submit confidential data" (2 — Nemotron)
+  - 🔴 **Data collected during the free period may be used to improve the model** (8)
+- One-click model-ID copy plus the **calling endpoint** — 2 of the 13 do *not* use `chat/completions` (Muse Spark uses `/responses`, Jev uses `/systemone`), so copying chat/completions fails
+- A fixed warning banner at the top; every tier is clickable as a filter; search by model name or model ID
+- A collapsible "official privacy wording" section showing the source text verbatim, each language pulled from its own official doc version
+- Optional live-availability cross-check: with the local proxy running, the page also compares against the official `/zen/v1/models` and flags models the docs still list but the API has retired (e.g. `mimo-v2.5-free`), plus models the API serves that the docs omit entirely (e.g. `muse-spark-1.2-contributor-free`, which therefore has **no privacy terms at all**). With the proxy down, that column is silently skipped.
 
 ## Usage page (`usage.html`)
 
@@ -41,11 +56,13 @@ The Go usage API returns no CORS headers, so the browser cannot call it directly
 
 Proxy address: `http://127.0.0.1:8787` (localhost only). Keep the window open and refresh `usage.html` — the Go card should then show "updated · proxy".
 
-Manual alternative: set `OPENCODE_GO_KEY` / `DEEPSEEK_API_KEY` and run `python usage-proxy.py`.
+Manual alternative: set `OPENCODE_GO_KEY` / `DEEPSEEK_API_KEY` and run `python usage-proxy.py`. Manual alternative: set `OPENCODE_GO_KEY` / `OPENCODE_SERVICE_KEY` / `DEEPSEEK_API_KEY` and run `python usage-proxy.py`. The service-account key (`oc_sk-`, created in the Console) is only needed by the "Model breakdown" tab of `usage.html` - the proxy `/api/go/records` route calls the official Usage API (`/console/api/v1/usage/export`) with it. Leave it empty if you do not use that panel.
+
+The proxy also exposes one **keyless** route, `/api/zen/models`, which forwards the official `https://opencode.ai/zen/v1/models` for `zen.html`'s live-availability check. That endpoint needs no credentials, but it sends no CORS header, so the browser can only read it through the proxy.
 
 ### Tampermonkey userscript (alerts on the official console)
 
-`opencode-go-alerts.user.js` adds the same pace warnings (90% / depleted / stranded / speed thresholds) to the top of the official Go page (`opencode.ai/workspace/*/go`). It prefers the hydrated `rollingUsage/weeklyUsage/monthlyUsage` values on the page (exact percentages, second-level resets, status) with `data-slot` labels as a fallback. Read-only page injection — no API calls, no keys.
+`opencode-go-alerts.user.js` adds the same pace warnings (90% / depleted / stranded / speed thresholds) to the top of the official Console Go page (`opencode.ai/console/*/go`; legacy `/workspace/*/go` kept). The old hydration block is gone in the new Console, so it reads the "Go usage limits" cards (progressbar `aria-valuenow` + absolute reset timestamp in the `title` attribute), with a same-origin probe of `opencode.ai/inference/go/v1/usage` for higher precision when cookie auth allows.
 
 1. Install the Tampermonkey extension.
 2. Open the raw `opencode-go-alerts.user.js` in this repo — Tampermonkey will offer to install it. Confirm.
@@ -61,7 +78,10 @@ No build step — open `index.html` directly, or use the live link above.
 
 Parsed at runtime from the official docs source files:
 
-- `https://raw.githubusercontent.com/anomalyco/opencode/dev/packages/web/src/content/docs/zh-cn/go.mdx`
+- Go pricing page: `.../services/www/src/docs/content/console/go.mdx`
+- Zen free models page: `.../services/www/src/docs/content/console/models.mdx` (single file, English only since the 2026-10-13 docs migration)
 - Mirror: `https://cdn.jsdelivr.net/gh/anomalyco/opencode@dev/...`
 
-Prices and quotas follow the official docs; this page only aggregates and presents them.
+`models.mdx` contains the model ID table (`Model | Model ID | Endpoint | AI SDK Package`), the pricing table (`Model | Input | Output | Cached Read | Cached Write`, with **no quota column**), a free-models bullet list, and the privacy section. So `zen.html` cannot reuse `index.html`'s parser, which locates its table by a "monthly limit" header.
+
+Prices, quotas and privacy terms follow the official docs; these pages only aggregate and present them.

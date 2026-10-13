@@ -1,2 +1,15 @@
 # 本地密钥文件，切勿提交
 usage-proxy.keys.json
+
+# 个人用量导出（含邮箱、账号/会话 ID、请求头等），切勿提交，也不要放进 Pages 根目录
+request-logs-*
+usage-*.csv
+usage-*.json
+
+# 页面存档/日志快照（含账号邮箱等个人信息），切勿提交
+OpenCode Console*.html
+OpenCode Console*_files/
+opencode.html
+opencode_files/
+.kilo/
+__pycache__/
