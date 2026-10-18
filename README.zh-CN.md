@@ -46,19 +46,22 @@
 
 - OpenCode Go 三档限额（5 小时 / 周 / 月，大圆环 Hero 展示）+ DeepSeek 账号余额
 - 同款 DeepSeek 高低峰徽章与倒计时
-- Key 只存浏览器 `localStorage`、只直发官方域名（Go 卡经本地代理）
+- Key 只存浏览器 `localStorage`、只直发官方域名（本地代理可选）
 - 配速预警：圆环下显示日预算与近 24h 速度；临界值按官方限制折算（周=月 50%，5h=月 20%，月基数 $60）——最后一周开始时月需 ≥50%、最后 5h 开始时月需 ≥80%，否则即使打满也注定浪费；太快按月外推超 100% 报警
 - Go Key 见本机 `auth.json` 的 `opencode-go` 项；DeepSeek 任取一个同账号 `sk-` Key 即可（余额为账号级）
 
-### 本地代理（Go 卡必需）
+### 本地代理（可选）
 
-Go 用量接口不返回 CORS 头，浏览器无法直连，必须经本地代理。**双击 `start-proxy.bat` 即可**：第一次它会自动从本机 `auth.json` 找 Go Key，再问你要 DeepSeek Key，存到本机 `usage-proxy.keys.json`（已 gitignore，切勿提交），然后启动代理；以后双击直接启动。
+Go / DeepSeek 两个主卡片都支持浏览器直连：Go 用量接口现在会返回 CORS 头（2026-10-18 实测），DeepSeek 余额接口本来就支持。Key 只存在浏览器 `localStorage`，直接发往官方域名，所以整页可以完全跑在 GitHub Pages 上，不需要本机开任何进程。
 
-代理地址 `http://127.0.0.1:8787`（仅本机），窗口不要关，再去浏览器刷新 `usage.html`，Go 卡会显示「已更新 · 代理」。
+本地代理保留着，但只有两个可选功能需要它：
 
-手动方式（可选）：设环境变量 `OPENCODE_GO_KEY` / `DEEPSEEK_API_KEY` 后运行 `python usage-proxy.py`。
+- **分模型明细**：Console 导出接口（`/console/api/v1/usage/export`）只允许 `https://opencode.ai` 自己跨域，GitHub Pages 读不到。
+- **Zen 实时可用性校验**：`/zen/v1/models` 没有可用的 CORS 头。
 
-服务账号 Key（`oc_sk-` 开头，在 Console 里创建）只供 usage.html「分模型明细」面板使用：usage-proxy.py 的 `/api/go/records` 路由用它调官方 Usage API（`/console/api/v1/usage/export`）；不用明细面板可以不填。
+要用这两项时，双击 `start-proxy.bat`（第一次会从本机 `auth.json` 找 Go Key，再问你要其它 Key，存到本机 `usage-proxy.keys.json`，已 gitignore，切勿提交），或设环境变量 `OPENCODE_GO_KEY` / `OPENCODE_SERVICE_KEY` / `DEEPSEEK_API_KEY` 后运行 `python usage-proxy.py`；然后在页面的「本地代理（可选）」栏填 `http://127.0.0.1:8787`。代理里的 Go Key 现在也是可选的——只在直连失败时兜底。
+
+服务账号 Key（`oc_sk-` 开头，在 Console 里创建）只供「分模型明细」面板使用：代理的 `/api/go/records` 路由用它调官方 Usage API（`/console/api/v1/usage/export`）；不用明细面板可以不填。
 
 代理还有一条**免 Key** 路由 `/api/zen/models`（转发官方 `https://opencode.ai/zen/v1/models`），专门给 `zen.html` 的实时可用性校验用——那个接口本身不要 Key，但上游不返回 CORS 头，浏览器只能经代理读。
 

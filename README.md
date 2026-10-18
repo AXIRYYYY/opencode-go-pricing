@@ -46,17 +46,22 @@ A companion page that shows *your own* Go usage:
 
 - Three quota rings (5-hour / weekly / monthly) + DeepSeek account balance
 - The same DeepSeek peak/off-peak badge and countdown
-- Keys live only in your browser's `localStorage` and are sent only to the official domains (via the local proxy where required)
+- Keys live only in your browser's `localStorage` and are sent only to the official domains (the local proxy is optional and only used for model breakdown / Zen check)
 - Pace warnings: daily budget vs. recent 24h speed, with the official limits folded in (weekly = 50% of monthly, 5h = 20% of monthly, $60 baseline) — warns when the remaining time can no longer fit a 100% quota, or when you're on track to exceed it
 - Your Go key is in your local `auth.json` under `opencode-go`; any `sk-` key from the same DeepSeek account works for the balance (balance is account-level)
 
-### Local proxy (required for the Go card)
+### Local proxy (optional)
 
-The Go usage API returns no CORS headers, so the browser cannot call it directly — a local proxy is required. **Just double-click `start-proxy.bat`**: on first run it finds your Go key in `auth.json`, asks for your DeepSeek key, stores them in `usage-proxy.keys.json` (gitignored — never commit it), and starts the proxy. After that, a double-click is all it takes.
+Both main cards run directly in the browser: the Go usage API now returns CORS headers (verified 2026-10-18) and the DeepSeek balance API already supports CORS. Keys stay in your browser's `localStorage` and are sent straight to the official domains, so the page works entirely on GitHub Pages — no local process is needed.
 
-Proxy address: `http://127.0.0.1:8787` (localhost only). Keep the window open and refresh `usage.html` — the Go card should then show "updated · proxy".
+The local proxy is still available, but only two optional features need it:
 
-Manual alternative: set `OPENCODE_GO_KEY` / `DEEPSEEK_API_KEY` and run `python usage-proxy.py`. Manual alternative: set `OPENCODE_GO_KEY` / `OPENCODE_SERVICE_KEY` / `DEEPSEEK_API_KEY` and run `python usage-proxy.py`. The service-account key (`oc_sk-`, created in the Console) is only needed by the "Model breakdown" tab of `usage.html` - the proxy `/api/go/records` route calls the official Usage API (`/console/api/v1/usage/export`) with it. Leave it empty if you do not use that panel.
+- **Model breakdown**: the Console export endpoint (`/console/api/v1/usage/export`) only allows `https://opencode.ai` as its CORS origin, so a GitHub Pages page cannot read it.
+- **Zen live-availability check**: `/zen/v1/models` has no usable CORS header.
+
+To use those, double-click `start-proxy.bat` (on first run it reads the Go key from `auth.json`, asks for the other keys, stores them in `usage-proxy.keys.json` — gitignored, never commit it — and starts the proxy), or set `OPENCODE_GO_KEY` / `OPENCODE_SERVICE_KEY` / `DEEPSEEK_API_KEY` and run `python usage-proxy.py`. Then enter `http://127.0.0.1:8787` in the page's "Local proxy" field. The Go key is optional for the proxy now — it is only a fallback if direct access fails.
+
+The service-account key (`oc_sk-`, created in the Console) is only needed by the "Model breakdown" tab: the proxy `/api/go/records` route calls the official Usage API (`/console/api/v1/usage/export`) with it. Leave it empty if you do not use that panel.
 
 The proxy also exposes one **keyless** route, `/api/zen/models`, which forwards the official `https://opencode.ai/zen/v1/models` for `zen.html`'s live-availability check. That endpoint needs no credentials, but it sends no CORS header, so the browser can only read it through the proxy.
 

@@ -103,6 +103,15 @@
   .btn:active{transform:translateY(0)}
   .btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
   .btn.primary{background:linear-gradient(135deg,rgba(99,102,241,.22),rgba(34,211,238,.18));border-color:rgba(99,102,241,.45)}
+  /* 「价格表」是回到重点功能的入口：统一用主题强调色（靛蓝）打底，
+     和左侧低峰倒计时等灰色备注胶囊明显区分开 */
+  .btn.nav{
+    background:linear-gradient(180deg,rgba(129,140,248,.24),rgba(129,140,248,.12));
+    border-color:rgba(129,140,248,.55);
+    color:var(--accent);
+    font-weight:600;
+  }
+  .btn.nav:hover{border-color:var(--accent);box-shadow:0 6px 18px rgba(99,102,241,.30)}
   .btn.danger{color:var(--err)}
   .spin svg{animation:rot .9s linear infinite}
   @keyframes rot{to{transform:rotate(360deg)}}
@@ -274,7 +283,7 @@
     </div>
     <div class="hactions">
       <span class="status" id="peak-pill" title="DeepSeek 计费时段"><span class="dot" id="peak-dot"></span><span id="peak-text">…</span><span class="muted" id="peak-next"></span></span>
-      <a class="btn" href="index.html" title="返回价格表">
+      <a class="btn nav" href="index.html" title="返回价格表">
         <svg viewBox="0 0 24 24"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
         价格表
       </a>
@@ -299,9 +308,9 @@
     <div class="hero-head">
       <h2>OpenCode Go</h2>
       <span class="badge b-mut" id="go-updated">未拉取</span>
-      <span class="sub">订阅级三档限额 · 经本地代理</span>
+      <span class="sub">订阅级三档限额 · 浏览器直连</span>
     </div>
-    <div id="go-body"><div class="empty-note">在下方「设置」里填入 Go Key 并启动本地代理后自动拉取</div></div>
+    <div id="go-body"><div class="empty-note">在下方「设置」里填入 Go Key 后自动拉取</div></div>
   </section>
 
   <section class="hero" id="card-ds">
@@ -318,7 +327,7 @@
       <span>设置 · Key 与代理</span>
       <span class="setdot muted" id="set-go">Go Key ✗</span>
       <span class="setdot muted" id="set-ds">DeepSeek Key ✗</span>
-      <span class="setdot muted" id="set-proxy">代理 ✗</span>
+      <span class="setdot muted" id="set-proxy">代理（可选）</span>
       <span class="hint-arrow">（点击展开）</span>
     </summary>
     <div class="set-body">
@@ -334,8 +343,8 @@
         <span class="ksaved" id="saved-ds"></span>
       </div>
       <div class="krow">
-        <label for="in-proxy">本地代理</label>
-        <input type="text" id="in-proxy" placeholder="http://127.0.0.1:8787（Go 卡必需，见下方）" autocomplete="off" spellcheck="false">
+        <label for="in-proxy">本地代理（可选）</label>
+        <input type="text" id="in-proxy" placeholder="http://127.0.0.1:8787（仅「分模型明细 / Zen 校验」需要，可留空）" autocomplete="off" spellcheck="false">
         <span class="ksaved" id="proxy-state"></span>
       </div>
       <div class="kbtns">
@@ -344,8 +353,9 @@
       </div>
       <p class="hint">
         Go Key 位置：本机 <code>~/.local/share/opencode/auth.json</code> 中 <code>"opencode-go"</code> 项的 key（或 Windows 下 <code>%USERPROFILE%\.local\share\opencode\auth.json</code>，以实际安装位置为准）。<br>
-        Go 接口不允许浏览器跨域直连，因此 <b>Go 卡必须走本地代理</b>：在仓库目录运行 <code>python usage-proxy.py</code>（Key 通过环境变量 <code>OPENCODE_GO_KEY</code> / <code>DEEPSEEK_API_KEY</code> 或同目录 <code>usage-proxy.keys.json</code> 提供，详见 README），保持窗口开着即可；<b>Windows 电脑双击仓库里的 <code>start-proxy.bat</code> 运行也可</b>（首次会自动读取 Go Key 并提示输入 DeepSeek Key）。DeepSeek 卡可直连，代理仅作备用。<br>
-        「分模型明细」需要另外的<b>服务账号 Key（oc_sk 开头）</b>：Console 里建好服务账号 Key 后填进代理的 <code>usage-proxy.keys.json</code> 的 <code>OPENCODE_SERVICE_KEY</code> 字段并重启代理；明细 Key 只放代理端，不经浏览器。<br>
+        Go / DeepSeek 两个主卡片都支持浏览器直连：填好 Key 后直接拉取，<b>不需要启动本地代理</b>。如果直连失败，先检查网络、VPN 或浏览器插件是否拦截了跨域请求。<br>
+        <b>本地代理是可选项</b>，只在两种情况下需要：①「分模型明细」要调 Console 的导出接口（该接口只允许 opencode.ai 自己的域名跨域）；② Zen 页面的实时可用性校验。需要时在仓库目录运行 <code>python usage-proxy.py</code>（Key 通过环境变量 <code>OPENCODE_GO_KEY</code> / <code>OPENCODE_SERVICE_KEY</code> / <code>DEEPSEEK_API_KEY</code> 或同目录 <code>usage-proxy.keys.json</code> 提供，详见 README），或 Windows 双击 <code>start-proxy.bat</code>，然后在上面的「本地代理（可选）」一栏填 <code>http://127.0.0.1:8787</code>。<br>
+        「分模型明细」还需要另外的<b>服务账号 Key（oc_sk 开头）</b>：Console 里建好后填进 <code>usage-proxy.keys.json</code> 的 <code>OPENCODE_SERVICE_KEY</code> 字段并重启代理；该 Key 只放代理端，不经浏览器。<br>
         安全提示：DeepSeek 官方条款不建议把 Key 放前端页面；本页仅做个人自用，Key 只经浏览器直发官方域名（或你自己的本地代理）。建议使用可随时 revoke 的 Key，勿分享带 Key 的页面状态。
       </p>
     </div>
@@ -394,9 +404,12 @@
 const GO_URL = 'https://opencode.ai/inference/go/v1/usage';
 const DS_URL = 'https://api.deepseek.com/user/balance';
 const LS_KEYS = 'opengo-usage-keys-v1';
-const LS_PROXY = 'opengo-usage-proxy-v1';
+// v2：代理已改为可选功能。换版本号会让旧版默认保存的 127.0.0.1:8787 自动失效，
+// 这样在 GitHub Pages 打开页面时不会再去连本机端口（那里根本没有本地代理）。
+const LS_PROXY = 'opengo-usage-proxy-v2';
 const LS_THEME = 'opengo-theme';
-const DEFAULT_PROXY = 'http://127.0.0.1:8787';
+// 默认留空 = 不启用本地代理。Go / DeepSeek 主卡片都走浏览器直连。
+const DEFAULT_PROXY = '';
 const POLL_MS = 60000;
 const RING_C = 2 * Math.PI * 52;
 const WARN_AT = 90;
@@ -631,7 +644,10 @@ function renderSettingsStatus() {
   };
   set('#set-go', !!goKey, 'Go Key ✓', 'Go Key ✗');
   set('#set-ds', !!dsKey, 'DeepSeek Key ✓', 'DeepSeek Key ✗');
-  set('#set-proxy', $('#proxy-state').textContent === '已连接', '代理 ✓', '代理 ✗');
+  // 代理已改为可选：没填地址就显示「代理（可选）」，填了但连不上才显示「代理 ✗」。
+  const proxySet = !!proxyBase();
+  const proxyOk = $('#proxy-state').textContent === '已连接';
+  set('#set-proxy', proxyOk, '代理 ✓', proxySet ? '代理 ✗' : '代理（可选）');
 }
 
 /* ---------- proxy ---------- */
@@ -676,7 +692,7 @@ function fetchProxy(path, ms, base) {
 async function pingProxy() {
   const el = $('#proxy-state');
   const base = proxyBase();
-  if (!base) { el.textContent = '未配置（Go 卡需代理）'; renderSettingsStatus(); return; }
+  if (!base) { el.textContent = '未配置（可选）'; renderSettingsStatus(); return; }
   el.textContent = '检测中…';
   renderSettingsStatus();
   try {
@@ -712,11 +728,11 @@ function errText(e, name) {
   if (e && e.code === 'HTTP_402') return '余额不足（402），请前往控制台充值';
   if (e && e.code === 'HTTP_429') return '触发限流（429），稍后自动重试';
   if (e && e.code === 'PROXY_NO_KEY') return '本地代理未配置该 Key：设置环境变量后重启 usage-proxy.py（见 README）';
-  if (e && e.code === 'NO_KEY') return '未配置 Key：请展开下方「设置」填入 Key（Go 卡还需启动本地代理）';
+  if (e && e.code === 'NO_KEY') return '未配置 Key：请展开下方「设置」填入 Go 或 DeepSeek Key';
   if (e && e.code && String(e.code).indexOf('HTTP_') === 0) return name + '接口返回 ' + String(e.code).slice(5) + '，稍后重试';
   if (e instanceof TypeError) {
-    if (e.proxyTried) return '直连被跨域拦截，且本地代理也连不上：请确认 usage-proxy.py 已运行、代理地址正确（默认 ' + DEFAULT_PROXY + '）';
-    return '网络或跨域被拦：浏览器直连官方接口失败。Go 卡请走本地代理（见下方设置说明），或检查网络/代理/VPN 后重试';
+    if (e.proxyTried) return '直连被跨域拦截，本地代理也连不上：请确认 usage-proxy.py 已运行、代理地址填写正确（当前：' + (proxyBase() || '未填写') + '）';
+    return '直连失败：检查网络 / VPN / 浏览器插件是否拦截跨域。Go 与 DeepSeek 接口本身已支持浏览器直连；只有「分模型明细 / Zen 校验」才需要本地代理';
   }
   return (name + '拉取失败：' + ((e && e.message) || '未知错误'));
 }
@@ -1035,7 +1051,7 @@ function renderGo() {
   } else {
     badge.className = 'badge b-mut';
     badge.textContent = '未拉取';
-    $('#go-body').innerHTML = '<div class="empty-note">在下方「设置」里填入 Go Key 并启动本地代理后自动拉取</div>';
+    $('#go-body').innerHTML = '<div class="empty-note">在下方「设置」里填入 Go Key 后自动拉取</div>';
   }
 }
 
@@ -1352,6 +1368,9 @@ async function fetchMuRecords(manual) {
   const range = hadCache ? '24h' : '7d';
   try {
     const root = proxyBase().replace(/\/+$/, '');
+    // 明细接口只允许 opencode.ai 自己的域名跨域，GitHub Pages 读不到，必须经本地代理。
+    // 没填代理时直接给明确提示，不做无用的网络请求。
+    if (!root) throw Object.assign(new Error('no proxy'), { code: 'NO_PROXY' });
     const ctl = new AbortController();
     const timer = setTimeout(() => ctl.abort(), 90000);
     let text;
@@ -1373,7 +1392,9 @@ async function fetchMuRecords(manual) {
     if (manual) toast('已拉取 ' + recs.length + ' 条明细');
   } catch (e) {
     let msg;
-    if (e && e.code === 'HTTP_503' && e.body && e.body.error === 'missing_key') {
+    if (e && e.code === 'NO_PROXY') {
+      msg = '「分模型明细」需要本地代理：先启动 usage-proxy.py，再在上方「设置」里填 http://127.0.0.1:8787';
+    } else if (e && e.code === 'HTTP_503' && e.body && e.body.error === 'missing_key') {
       msg = '本地代理缺少服务账号 Key：给 usage-proxy.keys.json 加 OPENCODE_SERVICE_KEY 后重启 usage-proxy.py';
     } else if (e && e.code === 'HTTP_401') {
       msg = '服务账号 Key 无效（401），请检查 OPENCODE_SERVICE_KEY';

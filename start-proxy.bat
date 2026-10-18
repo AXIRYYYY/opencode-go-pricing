@@ -1,9 +1,10 @@
 @echo off
-rem ç”¨é‡ä»£ç†ä¸€é”®å¯åŠ¨ï¼šåŒå‡»è¿è¡Œå³å¯ï¼Œä¸è¦å…³é—­å¼¹å‡ºçš„çª—å£
-chcp 65001 >nul
+rem ÉèÖÃ´°¿Ú±êÌâ£¬·½±ã·ÖÇåÕâ¸ö´°¿ÚÊÇ¸ÉÊ²Ã´µÄ
+title ÓÃÁ¿´úÀí usage-proxy (8787) - opencodego¼Û¸ñ×Ô¶¯ÅÅĞò
+rem ¿ÉÑ¡£ºÖ»ÓĞ¡¸·ÖÄ£ĞÍÃ÷Ï¸ / Zen Ğ£Ñé¡¹ĞèÒªËü¡£Ë«»÷ÔËĞĞ£¬²»Òª¹Ø±Õµ¯³öµÄ´°¿Ú
 cd /d "%~dp0"
 
-rem ---- æ‰¾ Python ----
+rem ---- ÕÒ Python ----
 set "PY="
 where python >nul 2>nul
 if not errorlevel 1 set "PY=python"
@@ -12,42 +13,47 @@ if not defined PY (
   if not errorlevel 1 set "PY=py"
 )
 if not defined PY (
-  echo [å¤±è´¥] æ²¡æ‰¾åˆ° Pythonã€‚
-  echo è¯·å…ˆå» python.org è£… Python 3ï¼Œå®‰è£…æ—¶å‹¾é€‰ Add python to PATHï¼Œè£…å¥½åé‡è·‘æœ¬è„šæœ¬ã€‚
+  echo [Ê§°Ü] Ã»ÕÒµ½ Python¡£
+  echo ÇëÏÈÈ¥ python.org ×° Python 3£¬°²×°Ê±¹´Ñ¡ Add python to PATH£¬×°ºÃºóÖØÅÜ±¾½Å±¾¡£
   pause
   exit /b 1
 )
 
-rem ---- å·²æœ‰ Key æ–‡ä»¶å°±ç›´æ¥å¯åŠ¨ ----
+rem ---- ÒÑÓĞ Key ÎÄ¼ş¾ÍÖ±½ÓÆô¶¯ ----
 if exist "usage-proxy.keys.json" (
-  echo [ok] å·²æœ‰ usage-proxy.keys.jsonï¼Œç›´æ¥å¯åŠ¨ã€‚
-  echo      æƒ³æ¢ Key å°±ç”¨è®°äº‹æœ¬æ”¹è¿™ä¸ªæ–‡ä»¶ï¼Œæˆ–åˆ æ‰å®ƒé‡è·‘æœ¬è„šæœ¬ã€‚
+  echo [ok] ÒÑÓĞ usage-proxy.keys.json£¬Ö±½ÓÆô¶¯¡£
+  echo      Ïë»» Key ¾ÍÓÃ¼ÇÊÂ±¾¸ÄÕâ¸öÎÄ¼ş£¬»òÉ¾µôËüÖØÅÜ±¾½Å±¾¡£
   goto :start
 )
 
-echo ç¬¬ä¸€æ¬¡è¿è¡Œï¼Œå…ˆå­˜ä¸¤ä¸ª Keyï¼ˆåªä¿å­˜åœ¨æœ¬æœº usage-proxy.keys.jsonï¼Œä¸ä¸Šä¼ ã€ä¸æäº¤ï¼‰ã€‚
+echo µÚÒ»´ÎÔËĞĞ£¬ÏÈ´æ¼¸¸ö Key£¨Ö»±£´æÔÚ±¾»ú usage-proxy.keys.json£¬²»ÉÏ´«¡¢²»Ìá½»£©¡£
+echo Go ¿¨ÏÖÔÚ¿ÉÒÔÖ±½ÓÁ¬¹Ù·½½Ó¿Ú£¬´úÀíÀïµÄ Go Key Ö»×÷±¸ÓÃ¡£
 echo.
 
-rem ---- å°è¯•ä»æœ¬æœº auth.json è‡ªåŠ¨è¯»å– Go Key ----
+rem ---- ³¢ÊÔ´Ó±¾»ú auth.json ×Ô¶¯¶ÁÈ¡ Go Key ----
 set "GOKEY_AUTO="
 for /f "delims=" %%K in ('powershell -NoProfile -Command "try { $base = if ($env:XDG_DATA_HOME) { $env:XDG_DATA_HOME } else { \"$env:USERPROFILE\.local\share\" }; $k = (Get-Content (Join-Path $base 'opencode\auth.json') -Raw -ErrorAction Stop | ConvertFrom-Json).'opencode-go'.key; if ($k) { $k.Trim() } } catch { }"') do set "GOKEY_AUTO=%%K"
 
 if defined GOKEY_AUTO (
-  echo [ok] å·²ä»æœ¬æœº auth.json è‡ªåŠ¨æ‰¾åˆ° Go Keyï¼Œä¸ç”¨æ‰‹åŠ¨å¡«ã€‚
+  echo [ok] ÒÑ´Ó±¾»ú auth.json ×Ô¶¯ÕÒµ½ Go Key£¨±¸ÓÃ£¬²»ÌîÒ²ÄÜÖ±Á¬£©¡£
   set "GOKEY=%GOKEY_AUTO%"
 ) else (
-  echo æ²¡æ‰¾åˆ°æœ¬æœº auth.jsonï¼Œè¯·æ‰‹åŠ¨ç²˜è´´ Go Keyã€‚
-  echo ä¸€èˆ¬åœ¨ %USERPROFILE%\.local\share\opencode\auth.json é‡Œ opencode-go é‚£ä¸€é¡¹ã€‚
-  set /p "GOKEY=è¯·ç²˜è´´ Go Keyï¼ˆä¸ç”¨ Go å¡å¯ç›´æ¥å›è½¦è·³è¿‡ï¼‰: "
+  echo Ã»ÕÒµ½±¾»ú auth.json£»Go Key ÏÖÔÚ¿ÉÒÔ²»Ìî£¬Ö±½Ó»Ø³µÌø¹ı£¨½ö×÷Ö±Á¬Ê§°ÜÊ±µÄ±¸ÓÃ£©¡£
+  echo Ò»°ãÔÚ %USERPROFILE%\.local\share\opencode\auth.json Àï opencode-go ÄÇÒ»Ïî¡£
+  set /p "GOKEY=ÇëÕ³Ìù Go Key£¨¿ÉÁô¿Õ£¬Go ¿¨Ä¬ÈÏÖ±Á¬£©: "
 )
-set /p "DSKEY=è¯·ç²˜è´´ DeepSeek Keyï¼ˆsk- å¼€å¤´ï¼Œä¸ç”¨å¯ç›´æ¥å›è½¦è·³è¿‡ï¼‰: "
+set /p "SVCKEY=ÇëÕ³Ìù·şÎñÕËºÅ Key£ºoc_sk- ¿ªÍ·£¬Console Àï´´½¨£¬ÓÃÓÚ¡¸·ÖÄ£ĞÍÃ÷Ï¸¡¹£¬²»ÓÃ¿ÉÖ±½Ó»Ø³µÌø¹ı: "
+set /p "DSKEY=ÇëÕ³Ìù DeepSeek Key£¨sk- ¿ªÍ·£¬²»ÓÃ¿ÉÖ±½Ó»Ø³µÌø¹ı£©: "
 
-powershell -NoProfile -Command "$d=@{}; if ($env:GOKEY.Trim() -ne '') { $d['OPENCODE_GO_KEY']=$env:GOKEY.Trim() }; if ($env:DSKEY.Trim() -ne '') { $d['DEEPSEEK_API_KEY']=$env:DSKEY.Trim() }; $d | ConvertTo-Json | Out-File -Encoding utf8 'usage-proxy.keys.json'"
-echo [ok] å·²ä¿å­˜åˆ° usage-proxy.keys.jsonã€‚
+powershell -NoProfile -Command "$d=@{}; if ($env:GOKEY.Trim() -ne '') { $d['OPENCODE_GO_KEY']=$env:GOKEY.Trim() }; if ($env:SVCKEY.Trim() -ne '') { $d['OPENCODE_SERVICE_KEY']=$env:SVCKEY.Trim() }; if ($env:DSKEY.Trim() -ne '') { $d['DEEPSEEK_API_KEY']=$env:DSKEY.Trim() }; $d | ConvertTo-Json | Out-File -Encoding utf8 'usage-proxy.keys.json'"
+echo [ok] ÒÑ±£´æµ½ usage-proxy.keys.json¡£
 
 :start
+
+rem CORS: only allow the file:// opened usage.html (Origin: null) on this machine.
+set "USAGE_PROXY_ALLOW_FILE=1"
 echo.
-echo æ­£åœ¨å¯åŠ¨ä»£ç† http://127.0.0.1:8787 â€”â€” ä¸è¦å…³è¿™ä¸ªçª—å£ï¼Œç„¶åå»æµè§ˆå™¨åˆ·æ–° usage.htmlã€‚
+echo ÕıÔÚÆô¶¯±¾µØ´úÀí http://127.0.0.1:8787£¨¿ÉÑ¡£©¡ª¡ª ²»Òª¹ØÕâ¸ö´°¿Ú£»Ö»ÓĞ¡¸·ÖÄ£ĞÍÃ÷Ï¸ / Zen Ğ£Ñé¡¹ĞèÒªËü¡£
 echo.
 %PY% usage-proxy.py
 pause

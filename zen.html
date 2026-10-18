@@ -118,6 +118,15 @@
   .btn:active{transform:translateY(0)}
   .btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
   .btn.primary{background:linear-gradient(135deg,rgba(99,102,241,.22),rgba(244,114,182,.18));border-color:rgba(99,102,241,.45)}
+  /* 「Go 价格 / 用量」是页面重点功能入口：统一用主题强调色（靛蓝）打底，
+     和左侧时间、状态备注胶囊明显区分开 */
+  .btn.nav{
+    background:linear-gradient(180deg,rgba(129,140,248,.24),rgba(129,140,248,.12));
+    border-color:rgba(129,140,248,.55);
+    color:var(--accent);
+    font-weight:600;
+  }
+  .btn.nav:hover{border-color:var(--accent);box-shadow:0 6px 18px rgba(99,102,241,.30)}
   .spin svg{animation:rot .9s linear infinite}
   @keyframes rot{to{transform:rotate(360deg)}}
 
@@ -313,11 +322,11 @@
     </div>
     <div class="hactions">
       <span class="status" id="status" title="数据状态"><span class="dot" id="status-dot"></span><span id="status-text">加载中…</span></span>
-      <a class="btn" href="index.html" title="Go 价格速查" id="go-btn">
+      <a class="btn nav" href="index.html" title="Go 价格速查" id="go-btn">
         <svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15v3M12 10v8M17 6v12"/></svg>
         <span id="go-label">Go 价格</span>
       </a>
-      <a class="btn" href="usage.html" title="查看用量" id="usage-btn">
+      <a class="btn nav" href="usage.html" title="查看用量" id="usage-btn">
         <svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15v3M12 10v8M17 6v12"/></svg>
         <span id="usage-label">用量</span>
       </a>
