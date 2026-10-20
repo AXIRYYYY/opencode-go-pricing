@@ -421,6 +421,11 @@ const LS_HISTORY = 'opengo-usage-history-v1';
 const HIST_KEEP_MS = 7 * 86400e3;
 const VEL_LOOKBACK_MS = 24 * 3600e3;
 const VEL_MIN_SPAN_MS = 6 * 3600e3;
+// 估算档：采样满30分钟且满3个点就先显示“约·估算”，只给人看，告警继续用上面6小时的稳定值
+const VEL_EARLY_MIN_SPAN_MS = 30 * 60e3;
+const VEL_EARLY_MIN_POINTS = 3;
+// 上次结果：每次算出稳定/估算就存一份，早上新数据不够时显示“·上次”顶着用（告警不用它）
+const LS_VELOCITY = 'opengo-usage-velocity-v1';
 
 const WINDOWS = [
   { key: 'rolling', label: '5 小时', en: 'rolling' },
@@ -820,8 +825,18 @@ function paceText(key, w) {
     const days = (t - Date.now()) / 86400000;
     if (days > 0) budget = '日预算 ' + ((100 - w.percent) / days).toFixed(1) + '%';
   }
-  const vl = velocity(key);
-  const spd = vl ? '速度 ' + vl.v.toFixed(1) + '%/天' : '速度采集中';
+  const vl = velocityDisplay(key);
+  // 四态显示：稳定（转正）→ 估算（约·估算）→ 上次（约·上次）→ 采集中带进度
+  let spd = '速度采集中';
+  if (vl && Number.isFinite(vl.v)) {
+    if (vl.estimated === 'cached') spd = '速度约 ' + vl.v.toFixed(1) + '%/天·上次';
+    else if (vl.estimated === true) spd = '速度约 ' + vl.v.toFixed(1) + '%/天·估算';
+    else spd = '速度 ' + vl.v.toFixed(1) + '%/天';
+  } else if (vl && Number.isFinite(vl.spanMs) && vl.spanMs > 0) {
+    const haveMin = Math.floor(vl.spanMs / 60000);
+    const needMin = Math.max(1, Math.ceil((VEL_EARLY_MIN_SPAN_MS - vl.spanMs) / 60000));
+    spd = '速度采集中（已采' + haveMin + '分钟，约' + needMin + '分钟后出估算）';
+  }
   return budget ? budget + ' · ' + spd : spd;
 }
 function num1(p) {
@@ -870,7 +885,24 @@ function recordHistory(data) {
     localStorage.setItem(LS_HISTORY, JSON.stringify(h.filter(p => p.t >= cutoff).slice(-3000)));
   } catch (e) { /* ignore */ }
 }
+// 最小二乘回归小盒子：接口百分比取整到整数，多点拟合可抵消取整量化误差。
+// 显示和告警共用这一个，避免两份算法以后改叉；门槛由调用方定（稳定6小时/估算30分钟）。
+function regressVelocity(points, key, minSpanMs, minPoints) {
+  const n = points.length;
+  if (n < minPoints) return null;
+  const t0 = points[0].t;
+  let sx = 0, sy = 0, sxx = 0, sxy = 0;
+  for (const p of points) {
+    const x = (p.t - t0) / 86400000, y = p[key];
+    sx += x; sy += y; sxx += x * x; sxy += x * y;
+  }
+  const denom = n * sxx - sx * sx;
+  const spanMs = points[n - 1].t - points[0].t;
+  if (spanMs < minSpanMs || !(denom > 0)) return null;
+  return { v: (n * sxy - sx * sy) / denom, spanMs };
+}
 // 返回 {v: 每天百分点}；检测到重置（骤降超5个点）则只用重置后数据；跨度不足返回 null
+// 注意：告警必须调这个稳定版（6小时门槛），显示请调下面的 velocityDisplay()
 function velocity(key) {
   const h = loadHistory().filter(p => p[key] != null);
   if (h.length < 2) return null;
@@ -884,19 +916,58 @@ function velocity(key) {
   let ai = 0;
   for (let i = 0; i < seg.length; i++) { if (seg[i].t <= target) ai = i; else break; }
   const points = seg.slice(ai);
-  // 最小二乘回归：接口百分比取整到整数，多点拟合可抵消取整量化误差
-  const n = points.length;
-  if (n < 2) return null;
-  const t0 = points[0].t;
-  let sx = 0, sy = 0, sxx = 0, sxy = 0;
-  for (const p of points) {
-    const x = (p.t - t0) / 86400000, y = p[key];
-    sx += x; sy += y; sxx += x * x; sxy += x * y;
+  return regressVelocity(points, key, VEL_MIN_SPAN_MS, 2);
+}
+// 上次结果小纸条：每次算出稳定/估算就存一份 {v, spanMs, at}，早上没新数据时顶着用（只给人看，告警不用）
+function loadVelocityCache() {
+  try {
+    const d = JSON.parse(localStorage.getItem(LS_VELOCITY) || '{}');
+    return d && typeof d === 'object' ? d : {};
+  } catch (e) { return {}; }
+}
+function saveVelocityCache(key, v, spanMs, estimated) {
+  try {
+    const d = loadVelocityCache();
+    d[key] = { v, spanMs, estimated, at: Date.now() };
+    localStorage.setItem(LS_VELOCITY, JSON.stringify(d));
+  } catch (e) { /* 存不下就跳过，下次照常显示采集中 */ }
+}
+// 显示专用：稳定（6小时）→ 估算（30分钟+3点）→ 上次结果 → 空（带已采分钟数）。
+// 5小时/周/月三个环各算各的，互不串味；告警仍调上面的 velocity()，不受这里影响。
+function velocityDisplay(key) {
+  const stable = velocity(key);
+  if (stable) {
+    saveVelocityCache(key, stable.v, stable.spanMs, false);
+    return { v: stable.v, spanMs: stable.spanMs, estimated: false };
   }
-  const denom = n * sxx - sx * sx;
-  const spanMs = points[n - 1].t - points[0].t;
-  if (spanMs < VEL_MIN_SPAN_MS || !(denom > 0)) return null;
-  return { v: (n * sxy - sx * sy) / denom, spanMs };
+  // 稳定版不够，同一批点再按估算门槛试一次（重置切段逻辑与上面保持一致）
+  const h = loadHistory().filter(p => p[key] != null);
+  let points = [];
+  if (h.length >= 2) {
+    let start = 0;
+    for (let i = h.length - 1; i > 0; i--) {
+      if (h[i - 1][key] - h[i][key] > 5) { start = i; break; }
+    }
+    const seg = h.slice(start);
+    const now = Date.now();
+    const target = now - VEL_LOOKBACK_MS;
+    let ai = 0;
+    for (let i = 0; i < seg.length; i++) { if (seg[i].t <= target) ai = i; else break; }
+    points = seg.slice(ai);
+    const early = regressVelocity(points, key, VEL_EARLY_MIN_SPAN_MS, VEL_EARLY_MIN_POINTS);
+    if (early) {
+      saveVelocityCache(key, early.v, early.spanMs, true);
+      return { v: early.v, spanMs: early.spanMs, estimated: true };
+    }
+  }
+  // 新数据不够，翻小纸条：有上次结果就标“上次”顶着用
+  try {
+    const c = loadVelocityCache()[key];
+    if (c && Number.isFinite(c.v)) return { v: c.v, spanMs: c.spanMs || 0, estimated: 'cached', at: c.at };
+  } catch (e) { /* ignore */ }
+  // 连上次都没有：返回已采分钟数，让显示层告诉用户还要等多久
+  const curSpan = points.length >= 2 ? points[points.length - 1].t - points[0].t : 0;
+  return { v: null, spanMs: curSpan, estimated: null };
 }
 function forecastAt(pctNow, vPerDay, atMs) {
   return pctNow + vPerDay * (atMs - Date.now()) / 86400000;
