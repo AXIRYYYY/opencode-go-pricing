@@ -352,6 +352,11 @@
         <svg viewBox="0 0 24 24" id="theme-ic"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
         <span id="theme-label">浅色</span>
       </button>
+      <!-- GitHub 仓库链接：纯静态跳转，新窗口打开，样式沿用 .btn；图标为实心填充故覆盖描边 -->
+      <a class="btn" href="https://github.com/AXIRYYYY/opencode-go-pricing" target="_blank" rel="noopener" id="github-btn" title="觉得有用？去 GitHub 给个 Star ⭐ 支持一下">
+        <svg viewBox="0 0 16 16" fill="currentColor" stroke="none" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+        <span id="github-label">GitHub 求 Star ⭐</span>
+      </a>
     </div>
   </header>
 
@@ -1018,6 +1023,7 @@ const I18N = {
     brandSub: "每 1M tokens 单价与每月使用额度 · 从便宜到贵 · 每次打开自动同步官方最新数据",
     btnUsage: "用量", btnUsageTitle: "查看用量",
     btnZen: "Zen 免费", btnZenTitle: "查看 Zen 免费模型与隐私条款",
+    btnGithub: "GitHub 求 Star ⭐", btnGithubTitle: "觉得有用？去 GitHub 给个 Star ⭐ 支持一下",
     btnRefresh: "刷新数据",
     btnThemeLight: "浅色", btnThemeDark: "深色", btnThemeTitle: "切换主题",
     btnLangTitle: "切换语言 / Switch language",
@@ -1077,6 +1083,7 @@ const I18N = {
     brandSub: "Per-1M-token prices & monthly quotas · sorted cheap to expensive · auto-synced from the official docs on every visit",
     btnUsage: "Usage", btnUsageTitle: "View usage",
     btnZen: "Zen Free", btnZenTitle: "View Zen free models & privacy terms",
+    btnGithub: "Star on GitHub ⭐", btnGithubTitle: "If this helps, please give us a ⭐ on GitHub",
     btnRefresh: "Refresh",
     btnThemeLight: "Light", btnThemeDark: "Dark", btnThemeTitle: "Toggle theme",
     btnLangTitle: "切换语言 / Switch language",
@@ -1732,6 +1739,9 @@ const usageBtn = $("#usage-btn");
     $("#usage-label").textContent = t("btnUsage");
     $("#zen-btn").title = t("btnZenTitle");
     $("#zen-label").textContent = t("btnZen");
+    // GitHub 求 Star 按钮：跟随中英文切换按钮文字和悬停提示
+    $("#github-btn").title = t("btnGithubTitle");
+    $("#github-label").textContent = t("btnGithub");
   $("#refresh-label").textContent = t("btnRefresh");
   $("#theme").title = t("btnThemeTitle");
   $("#status").title = t("statusTitle");
