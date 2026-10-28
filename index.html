@@ -450,9 +450,12 @@ const SERIES_COLORS = {
   "DeepSeek": "#34d399",
   "Hy": "#a78bfa",
   "Space Bunny": "#7dd3fc",
+  // 2026-10-28 官方新增两个真品牌（Step / Beam / Iceman 只是匿名代号，不是品牌，仍归「其他」）
+  "Claude": "#d97757",
+  "Gemini": "#4f8cff",
   "其他": "#94a3b8"
 };
-const SERIES_ORDER = ["Grok","GPT","GLM","Kimi","LongCat","MiMo","MiniMax","Muse Spark","Qwen","DeepSeek","Hy","Space Bunny","其他"];
+const SERIES_ORDER = ["Grok","GPT","GLM","Kimi","LongCat","MiMo","MiniMax","Muse Spark","Qwen","DeepSeek","Hy","Space Bunny","Claude","Gemini","其他"];
 const SERIES_RULES = [
   ["muse spark", "Muse Spark"],
   ["grok", "Grok"],
@@ -466,17 +469,30 @@ const SERIES_RULES = [
   ["deepseek", "DeepSeek"],
   ["hy", "Hy"],
   // 2026-10-07 官方新增模型 Space Bunny；detectSeries 用 startsWith，所以名字要完整匹配
-  ["space bunny", "Space Bunny"]
+  ["space bunny", "Space Bunny"],
+  // 2026-10-28 新增真品牌：Claude（Anthropic）、Gemini（Google）
+  // 规则用小写前缀（detectSeries 会先把模型名转小写），返回值必须与 SERIES_COLORS / SERIES_ORDER 完全一致
+  // 注意：Step / Beam / Iceman 是匿名代号，不是品牌，故意不加规则，让它们留在「其他」
+  ["claude", "Claude"],
+  ["gemini", "Gemini"]
 ];
 
 function parseUsd(cell) {
   if (cell == null) return null;
-  const s = String(cell).replace(/\\/g, "").trim();
-  if (!s || /^[-—–]+$/.test(s)) return null;
-  if (/^free$/i.test(s) || /^免费$/.test(s)) return 0;
-  const m = s.replace(/[^0-9.]/g, "");
-  if (!m) return null;
-  const v = parseFloat(m);
+  const raw = String(cell).replace(/\\/g, "").trim();
+  if (!raw || /^[-—–]+$/.test(raw)) return null;
+  if (/^free$/i.test(raw) || /^免费$/.test(raw)) return 0;
+  // 2026-10-28 官方促销价写法：Markdown 是 ~~$4.00~~ $2.00，HTML 可能渲染成 <del>$4.00</del> $2.00。
+  // 旧价是划掉的，不能算；先去掉划线部分，只取划线后的现价。
+  // 若表格渲染后只剩纯文本 "$4.00 $2.00"（两个数字），则取最后一个数字（现价）。
+  const nowPart = raw
+    .replace(/~~[\s\S]*?~~/g, " ")
+    .replace(/<del[^>]*>[\s\S]*?<\/del>/gi, " ")
+    .trim();
+  const numList = (str) => str.match(/\d+(?:\.\d+)?/g) || [];
+  const nums = /\d/.test(nowPart) ? numList(nowPart) : numList(raw);
+  if (!nums.length) return null;
+  const v = parseFloat(nums[nums.length - 1]);
   return Number.isFinite(v) ? v : null;
 }
 

@@ -17,7 +17,7 @@ A zero-dependency, single-file web page that aggregates every [OpenCode Go](http
 - **Always current**: re-syncs the official docs on every visit, with a multi-level fallback chain (GitHub raw → jsDelivr → ghproxy / gh-proxy / ghfast mirrors)
 - **Sorted by the output column's fee-equivalent price (cheap → expensive) by default** (list price ÷ monthly quota × $10); a manual switch is remembered
 - **Sort & search**: click any column header to sort; search across models, series and tiers
-- **Series legend**: 13 color-coded model series; click to filter
+- **Series legend**: 15 color-coded model series; click to filter
 - **DeepSeek peak/off-peak**: live billing-window badge with countdown, per-tier rows (Off-Peak / Peak, ≤200K / >200K), and a "live" marker on the tier currently in effect
 - **Fee-equivalent mode**: list price ÷ monthly quota × $10 — the effective unit price when your full quota is used, directly comparable with pay-as-you-go platforms
 - **USD / CNY toggle** with live FX rates — the conversion rate is labeled next to the toggle while CNY is active (cached fallback included)
