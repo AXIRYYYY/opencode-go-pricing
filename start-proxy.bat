@@ -1,6 +1,6 @@
 @echo off
 rem 设置窗口标题，方便分清这个窗口是干什么的
-title 用量代理 usage-proxy (8787) - opencodego价格自动排序
+title 用量代理 usage-proxy (8788) - opencodego价格自动排序
 rem 可选：只有「分模型明细 / Zen 校验」需要它。双击运行，不要关闭弹出的窗口
 cd /d "%~dp0"
 
@@ -53,7 +53,7 @@ echo [ok] 已保存到 usage-proxy.keys.json。
 rem CORS: only allow the file:// opened usage.html (Origin: null) on this machine.
 set "USAGE_PROXY_ALLOW_FILE=1"
 echo.
-echo 正在启动本地代理 http://127.0.0.1:8787（可选）—— 不要关这个窗口；只有「分模型明细 / Zen 校验」需要它。
+echo 正在启动本地代理 http://127.0.0.1:8788（可选）—— 不要关这个窗口；只有「分模型明细 / Zen 校验」需要它。
 echo.
 %PY% usage-proxy.py
 pause

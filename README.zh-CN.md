@@ -59,7 +59,7 @@ Go / DeepSeek 两个主卡片都支持浏览器直连：Go 用量接口现在会
 - **分模型明细**：Console 导出接口（`/console/api/v1/usage/export`）只允许 `https://opencode.ai` 自己跨域，GitHub Pages 读不到。
 - **Zen 实时可用性校验**：`/zen/v1/models` 没有可用的 CORS 头。
 
-要用这两项时，双击 `start-proxy.bat`（第一次会从本机 `auth.json` 找 Go Key，再问你要其它 Key，存到本机 `usage-proxy.keys.json`，已 gitignore，切勿提交），或设环境变量 `OPENCODE_GO_KEY` / `OPENCODE_SERVICE_KEY` / `DEEPSEEK_API_KEY` 后运行 `python usage-proxy.py`；然后在页面的「本地代理（可选）」栏填 `http://127.0.0.1:8787`。代理里的 Go Key 现在也是可选的——只在直连失败时兜底。
+要用这两项时，双击 `start-proxy.bat`（第一次会从本机 `auth.json` 找 Go Key，再问你要其它 Key，存到本机 `usage-proxy.keys.json`，已 gitignore，切勿提交），或设环境变量 `OPENCODE_GO_KEY` / `OPENCODE_SERVICE_KEY` / `DEEPSEEK_API_KEY` 后运行 `python usage-proxy.py`；然后在页面的「本地代理（可选）」栏填 `http://127.0.0.1:8788`。代理里的 Go Key 现在也是可选的——只在直连失败时兜底。
 
 服务账号 Key（`oc_sk-` 开头，在 Console 里创建）只供「分模型明细」面板使用：代理的 `/api/go/records` 路由用它调官方 Usage API（`/console/api/v1/usage/export`）；不用明细面板可以不填。
 

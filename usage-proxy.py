@@ -21,7 +21,7 @@
   $env:DEEPSEEK_API_KEY = "sk-开头"
   python usage-proxy.py
 
-  然后在 usage.html 的「本地代理（可选）」一栏填 http://127.0.0.1:8787
+  然后在 usage.html 的「本地代理（可选）」一栏填 http://127.0.0.1:8788
   （只有要用「分模型明细」或 Zen 实时校验时才需要）。
 
 跨源放行（默认只放行本仓库的 GitHub Pages 站点和本机 localhost）：
@@ -49,7 +49,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 HOST = os.environ.get("USAGE_PROXY_HOST", "127.0.0.1")
-PORT = int(os.environ.get("USAGE_PROXY_PORT", "8787"))
+PORT = int(os.environ.get("USAGE_PROXY_PORT", "8788"))
 TIMEOUT = 15
 RECORDS_TIMEOUT = 120
 RETRY_ONCE = True

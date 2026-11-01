@@ -59,7 +59,7 @@ The local proxy is still available, but only two optional features need it:
 - **Model breakdown**: the Console export endpoint (`/console/api/v1/usage/export`) only allows `https://opencode.ai` as its CORS origin, so a GitHub Pages page cannot read it.
 - **Zen live-availability check**: `/zen/v1/models` has no usable CORS header.
 
-To use those, double-click `start-proxy.bat` (on first run it reads the Go key from `auth.json`, asks for the other keys, stores them in `usage-proxy.keys.json` — gitignored, never commit it — and starts the proxy), or set `OPENCODE_GO_KEY` / `OPENCODE_SERVICE_KEY` / `DEEPSEEK_API_KEY` and run `python usage-proxy.py`. Then enter `http://127.0.0.1:8787` in the page's "Local proxy" field. The Go key is optional for the proxy now — it is only a fallback if direct access fails.
+To use those, double-click `start-proxy.bat` (on first run it reads the Go key from `auth.json`, asks for the other keys, stores them in `usage-proxy.keys.json` — gitignored, never commit it — and starts the proxy), or set `OPENCODE_GO_KEY` / `OPENCODE_SERVICE_KEY` / `DEEPSEEK_API_KEY` and run `python usage-proxy.py`. Then enter `http://127.0.0.1:8788` in the page's "Local proxy" field. The Go key is optional for the proxy now — it is only a fallback if direct access fails.
 
 The service-account key (`oc_sk-`, created in the Console) is only needed by the "Model breakdown" tab: the proxy `/api/go/records` route calls the official Usage API (`/console/api/v1/usage/export`) with it. Leave it empty if you do not use that panel.
 
