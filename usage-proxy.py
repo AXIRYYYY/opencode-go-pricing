@@ -113,16 +113,23 @@ def _is_local_origin(origin):
 
 
 def load_keys_file():
-    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "usage-proxy.keys.json")
-    try:
-        # utf-8-sig：兼容 Windows PowerShell 写出的带 BOM 文件
-        with open(path, encoding="utf-8-sig") as f:
-            data = json.load(f)
-    except (OSError, ValueError):
-        return {}
-    if not isinstance(data, dict):
-        return {}
-    return {k: v for k, v in data.items() if isinstance(v, str) and v.strip()}
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    merged = {}
+    # 先读基础文件，再读网页导出的覆盖文件（后者优先，避免覆盖时丢失本地独有 Key）
+    for name in ("usage-proxy.keys.json", "usage-proxy.keys.web.json"):
+        path = os.path.join(base_dir, name)
+        try:
+            # utf-8-sig：兼容 Windows PowerShell 写出的带 BOM 文件
+            with open(path, encoding="utf-8-sig") as f:
+                data = json.load(f)
+        except (OSError, ValueError):
+            continue
+        if not isinstance(data, dict):
+            continue
+        for k, v in data.items():
+            if isinstance(v, str) and v.strip():
+                merged[k] = v
+    return merged
 
 
 FILE_KEYS = load_keys_file()

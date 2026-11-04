@@ -355,6 +355,7 @@
       <div class="kbtns">
         <button class="btn primary" id="save-keys">保存并拉取</button>
         <button class="btn danger" id="clear-keys">清除本地 Key</button>
+        <button class="btn" id="export-keys">导出设置</button>
       </div>
       <p class="hint">
         Go Key 位置：本机 <code>~/.local/share/opencode/auth.json</code> 中 <code>"opencode-go"</code> 项的 key（或 Windows 下 <code>%USERPROFILE%\.local\share\opencode\auth.json</code>，以实际安装位置为准）。<br>
@@ -1703,6 +1704,26 @@ function bindEvents() {
     renderGo();
     renderDs();
     toast('本地 Key 已清除');
+  });
+  $('#export-keys').addEventListener('click', () => {
+    const saved = loadKeys();
+    const goK = ($('#in-go').value || '').trim() || saved.goKey || '';
+    const dsK = ($('#in-ds').value || '').trim() || saved.dsKey || '';
+    if (!goK && !dsK) { toast('没有可导出的 Key'); return; }
+    const obj = {};
+    if (goK) obj.OPENCODE_GO_KEY = goK;
+    if (dsK) obj.DEEPSEEK_API_KEY = dsK;
+    const json = JSON.stringify(obj, null, 4).replace(/\n/g, '\r\n');
+    const blob = new Blob(['\ufeff' + json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'usage-proxy.keys.web.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast('已导出 usage-proxy.keys.web.json：放到项目目录即可，代理会优先读取它；本地独有的服务账号 Key 仍保留');
   });
 }
 
