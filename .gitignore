@@ -6,6 +6,12 @@ request-logs-*
 usage-*.csv
 usage-*.json
 
+# 小红书配图（本地素材，不进仓库；Pages 从仓库根目录发布，提交了会公开）
+xhs-images/
+
+# 本地用量采样历史（含个人用量，仅本机分析，禁止提交）
+usage-history/
+
 # 页面存档/日志快照（含账号邮箱等个人信息），切勿提交
 OpenCode Console*.html
 OpenCode Console*_files/
@@ -13,3 +19,10 @@ opencode.html
 opencode_files/
 .kilo/
 __pycache__/
+
+# 本地控制台页面快照（含账号/会话信息）
+Activity *OpenCode Console*.html
+Activity *_files/
+
+# 本地迁移指南（个人笔记，不公开）
+*-会话迁移指南.md

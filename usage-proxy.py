@@ -15,6 +15,10 @@
   /api/ds/balance  → https://api.deepseek.com/user/balance      （DeepSeek 余额，可直连）
   /api/zen/models  → https://opencode.ai/zen/v1/models（Zen 免费模型清单，免 Key；上游无 CORS 头故经本代理）
 
+附加（可选）路由：
+  POST /api/history → 接收 usage.html / 油猴脚本推送的采样历史，落盘到同目录 usage-history/（仅本机分析用）
+  GET  /api/history → 返回两边已落盘的点数与最新一条
+
 用法（Windows PowerShell）：
   $env:OPENCODE_GO_KEY = "你的 Go key（auth.json 里 opencode-go 项）"
   $env:OPENCODE_SERVICE_KEY = "oc_sk-开头（Console 里建服务账号 Key）"
@@ -43,6 +47,8 @@ scope=organization&range=7d）；返回体可能是 CSV 或 JSON，由页面自�
 import json
 import os
 import sys
+import threading
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -53,6 +59,16 @@ PORT = int(os.environ.get("USAGE_PROXY_PORT", "8788"))
 TIMEOUT = 15
 RECORDS_TIMEOUT = 120
 RETRY_ONCE = True
+
+# ---- 采样历史落盘（可选功能）----
+# usage.html 与油猴脚本各自把 localStorage 里的历史点 POST 过来，按 t 去重追加。
+# 目录默认在脚本同级的 usage-history/，已加入 .gitignore，切勿提交（含个人用量）。
+HISTORY_DIR = os.environ.get(
+    "USAGE_HISTORY_DIR",
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "usage-history"),
+)
+HISTORY_MAX_BYTES = 512 * 1024
+HISTORY_SOURCES = ("usage", "tampermonkey")
 
 UPSTREAM = {
     "/api/go/usage": ("https://opencode.ai/inference/go/v1/usage", "OPENCODE_GO_KEY"),
@@ -71,7 +87,9 @@ DEFAULT_RECORDS_QUERY = {"scope": "organization", "range": "7d"}
 ALLOW_ORIGINS = {
     o.strip().rstrip("/")
     for o in os.environ.get(
-        "USAGE_PROXY_ALLOW_ORIGIN", "https://axiryyyy.github.io"
+        "USAGE_PROXY_ALLOW_ORIGIN",
+        # 本仓库的 GitHub Pages + 油猴运行所在的官方站点（推送采样历史需要）
+        "https://axiryyyy.github.io,https://opencode.ai",
     ).split(",")
     if o.strip()
 }
@@ -117,6 +135,125 @@ def get_key(env_name):
     return FILE_KEYS.get(env_name, "").strip()
 
 
+# ---- 采样历史落盘实现 ----
+_HIST_LOCK = threading.Lock()
+_HIST_SEEN = {}  # source -> set(int t)，首次访问时从 jsonl 回填
+
+
+def _history_file(source):
+    os.makedirs(HISTORY_DIR, exist_ok=True)
+    return os.path.join(HISTORY_DIR, source + ".jsonl")
+
+
+def _history_seen(source):
+    """返回该来源已落盘的 t 集合；首次调用时读文件回填。调用方需持有 _HIST_LOCK。"""
+    seen = _HIST_SEEN.get(source)
+    if seen is not None:
+        return seen
+    seen = set()
+    try:
+        with open(_history_file(source), encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    obj = json.loads(line)
+                except ValueError:
+                    continue
+                t = obj.get("t") if isinstance(obj, dict) else None
+                if isinstance(t, (int, float)) and not isinstance(t, bool):
+                    seen.add(int(t))
+    except OSError:
+        pass
+    _HIST_SEEN[source] = seen
+    return seen
+
+
+def _history_append(source, points):
+    """按 t 去重追加；返回 (added, total)。points 已由调用方清洗。"""
+    with _HIST_LOCK:
+        seen = _history_seen(source)
+        added = []
+        for p in points:
+            t = int(p["t"])
+            if t in seen:
+                continue
+            seen.add(t)
+            added.append({
+                "t": t,
+                "rolling": p.get("rolling"),
+                "weekly": p.get("weekly"),
+                "monthly": p.get("monthly"),
+            })
+        if added:
+            path = _history_file(source)
+            with open(path, "a", encoding="utf-8", newline="\n") as f:
+                for row in added:
+                    f.write(json.dumps(row, ensure_ascii=False) + "\n")
+            meta = {
+                "savedAt": int(time.time() * 1000),
+                "source": source,
+                "received": len(points),
+                "latest": max(added, key=lambda r: r["t"]),
+            }
+            with open(
+                os.path.join(HISTORY_DIR, "latest-" + source + ".json"),
+                "w",
+                encoding="utf-8",
+                newline="\n",
+            ) as f:
+                json.dump(meta, f, ensure_ascii=False)
+        return len(added), len(seen)
+
+
+def _history_summary(source):
+    with _HIST_LOCK:
+        seen = _history_seen(source)
+        ts = sorted(seen)
+    latest = None
+    if ts:
+        try:
+            with open(_history_file(source), encoding="utf-8") as f:
+                last = None
+                for line in f:
+                    if line.strip():
+                        last = line
+            if last:
+                latest = json.loads(last)
+        except (OSError, ValueError):
+            latest = None
+    return {
+        "count": len(ts),
+        "first": ts[0] if ts else None,
+        "last": ts[-1] if ts else None,
+        "latest": latest,
+    }
+
+
+def _history_points(source):
+    """返回最近 7 天的采样点，按 t 升序；供两个前端合并后统一算速度。"""
+    cutoff = int(time.time() * 1000) - 7 * 86400 * 1000
+    out = []
+    try:
+        with open(_history_file(source), encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    obj = json.loads(line)
+                except ValueError:
+                    continue
+                t = obj.get("t") if isinstance(obj, dict) else None
+                if isinstance(t, (int, float)) and not isinstance(t, bool) and t >= cutoff:
+                    out.append(obj)
+    except OSError:
+        pass
+    out.sort(key=lambda p: p["t"])
+    return out[-5000:]
+
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "UsageProxy/1.0"
 
@@ -147,7 +284,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         self.send_header("Access-Control-Allow-Origin", allow)
         self.send_header("Vary", "Origin")
-        self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "*")
         self.send_header("Access-Control-Max-Age", "600")
         # Chrome Private Network Access：公网 https 页面调 127.0.0.1 必须有这个头
@@ -167,8 +304,76 @@ class Handler(BaseHTTPRequestHandler):
         self._cors()
         self.end_headers()
 
+    def do_POST(self):
+        """只处理 /api/history：接收前端采样历史并落盘（可选功能）。"""
+        path, _, _ = self.path.partition("?")
+        if path != "/api/history":
+            self._send_json(404, {"error": "not_found"})
+            return
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            length = 0
+        if length <= 0:
+            self._send_json(400, {"error": "empty_body"})
+            return
+        if length > HISTORY_MAX_BYTES:
+            self._send_json(413, {"error": "payload_too_large"})
+            return
+        try:
+            payload = json.loads(self.rfile.read(length).decode("utf-8"))
+        except (ValueError, UnicodeDecodeError):
+            self._send_json(400, {"error": "bad_json"})
+            return
+        source = payload.get("source") if isinstance(payload, dict) else None
+        points = payload.get("points") if isinstance(payload, dict) else None
+        if source not in HISTORY_SOURCES:
+            self._send_json(400, {"error": "bad_source"})
+            return
+        if not isinstance(points, list) or not points:
+            self._send_json(400, {"error": "bad_points"})
+            return
+        if len(points) > 3000:
+            self._send_json(413, {"error": "too_many_points"})
+            return
+        clean = []
+        for p in points:
+            if not isinstance(p, dict):
+                continue
+            t = p.get("t")
+            if not isinstance(t, (int, float)) or isinstance(t, bool) or t <= 0:
+                continue
+            row = {"t": int(t)}
+            for k in ("rolling", "weekly", "monthly"):
+                v = p.get(k)
+                row[k] = (
+                    v
+                    if isinstance(v, (int, float)) and not isinstance(v, bool)
+                    else None
+                )
+            clean.append(row)
+        if not clean:
+            self._send_json(400, {"error": "no_valid_points"})
+            return
+        added, total = _history_append(source, clean)
+        self._send_json(
+            200, {"ok": True, "source": source, "added": added, "total": total}
+        )
+
     def do_GET(self):
         path, _, query = self.path.partition("?")
+        if path == "/api/history/points":
+            out = {"ok": True}
+            for src in HISTORY_SOURCES:
+                out[src] = _history_points(src)
+            self._send_json(200, out)
+            return
+        if path == "/api/history":
+            out = {"ok": True}
+            for src in HISTORY_SOURCES:
+                out[src] = _history_summary(src)
+            self._send_json(200, out)
+            return
         route = UPSTREAM.get(path)
         if route is None:
             self._send_json(200, {"ok": True, "routes": sorted(UPSTREAM)})
@@ -244,6 +449,7 @@ def main():
     server = ThreadingHTTPServer((HOST, PORT), Handler)
     print("usage-proxy listening on http://%s:%d (localhost only)" % (HOST, PORT))
     print("routes: %s" % (" ".join(sorted(UPSTREAM))))
+    print("history: POST/GET /api/history -> %s" % HISTORY_DIR)
     print(
         "allowed origins: %s%s"
         % (

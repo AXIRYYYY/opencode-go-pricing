@@ -19,6 +19,7 @@ A zero-dependency, single-file web page that aggregates every [OpenCode Go](http
 - **Sort & search**: click any column header to sort; search across models, series and tiers
 - **Series legend**: 15 color-coded model series; click to filter
 - **DeepSeek peak/off-peak**: live billing-window badge with countdown, per-tier rows (Off-Peak / Peak, ≤200K / >200K), and a "live" marker on the tier currently in effect
+- **Usage estimator**: enter this round's input / output tokens on the home page (e.g. `77.5k`, `1.2m`) to see, per model, the round cost, its share of that model's monthly limit, and roughly how many rounds fit in a month; the column stays hidden when the field is empty
 - **Fee-equivalent mode**: list price ÷ monthly quota × $10 — the effective unit price when your full quota is used, directly comparable with pay-as-you-go platforms
 - **USD / CNY toggle** with live FX rates — the conversion rate is labeled next to the toggle while CNY is active (cached fallback included)
 - **Model ID column** with one-click copy (e.g. `deepseek-v4.1-flash`)

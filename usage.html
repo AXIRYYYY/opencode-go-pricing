@@ -360,6 +360,7 @@
         Go Key 位置：本机 <code>~/.local/share/opencode/auth.json</code> 中 <code>"opencode-go"</code> 项的 key（或 Windows 下 <code>%USERPROFILE%\.local\share\opencode\auth.json</code>，以实际安装位置为准）。<br>
         Go / DeepSeek 两个主卡片都支持浏览器直连：填好 Key 后直接拉取，<b>不需要启动本地代理</b>。如果直连失败，先检查网络、VPN 或浏览器插件是否拦截了跨域请求。<br>
         <b>本地代理是可选项</b>，只在两种情况下需要：①「分模型明细」要调 Console 的导出接口（该接口只允许 opencode.ai 自己的域名跨域）；② Zen 页面的实时可用性校验。需要时在仓库目录运行 <code>python usage-proxy.py</code>（Key 通过环境变量 <code>OPENCODE_GO_KEY</code> / <code>OPENCODE_SERVICE_KEY</code> / <code>DEEPSEEK_API_KEY</code> 或同目录 <code>usage-proxy.keys.json</code> 提供，详见 README），或 Windows 双击 <code>start-proxy.bat</code>，然后在上面的「本地代理（可选）」一栏填 <code>http://127.0.0.1:8788</code>。<br>
+        填了本地代理后，本页采样历史会自动同步到项目的 <code>usage-history/</code>（仅本机，留空则不同步）。<br>
         「分模型明细」还需要另外的<b>服务账号 Key（oc_sk 开头）</b>：Console 里建好后填进 <code>usage-proxy.keys.json</code> 的 <code>OPENCODE_SERVICE_KEY</code> 字段并重启代理；该 Key 只放代理端，不经浏览器。<br>
         安全提示：DeepSeek 官方条款不建议把 Key 放前端页面；本页仅做个人自用，Key 只经浏览器直发官方域名（或你自己的本地代理）。建议使用可随时 revoke 的 Key，勿分享带 Key 的页面状态。
       </p>
@@ -432,6 +433,10 @@ const VEL_EARLY_MIN_SPAN_MS = 30 * 60e3;
 const VEL_EARLY_MIN_POINTS = 3;
 // 上次结果：每次算出稳定/估算就存一份，早上新数据不够时显示“·上次”顶着用（告警不用它）
 const LS_VELOCITY = 'opengo-usage-velocity-v1';
+// 采样历史同步到本地代理（可选）：只有设置里填了代理地址才推送，失败静默，不影响直连。
+const SYNC_MIN_INTERVAL = 5 * 60e3;
+const SYNC_BACKOFF_MS = 10 * 60e3;
+let syncLastT = 0, syncAt = 0, syncFailAt = 0, syncBusy = false;
 
 const WINDOWS = [
   { key: 'rolling', label: '5 小时', en: 'rolling' },
@@ -891,6 +896,96 @@ function recordHistory(data) {
     localStorage.setItem(LS_HISTORY, JSON.stringify(h.filter(p => p.t >= cutoff).slice(-3000)));
   } catch (e) { /* ignore */ }
 }
+// 把本页采样历史增量推送到本地代理（可选）。没填代理/连不上就静默失败，10 分钟内不重试。
+// 目的：让 usage.html 与油猴两边的历史都能落盘到项目的 usage-history/，方便对比速度差异。
+async function syncHistoryToProxy() {
+  const base = proxyBase();
+  if (!base || syncBusy) return;
+  if (Date.now() - syncFailAt < SYNC_BACKOFF_MS) return;
+  // 只推内存里还没推过的点；刷新后 syncLastT=0 会重推全量，服务器按 t 去重
+  const points = loadHistory().filter(p => p.t > syncLastT).slice(-3000);
+  if (!points.length) return;
+  // 首次同步允许立即推；之后最多每 5 分钟推一次，避免每个 tick 都发请求
+  if (syncLastT && Date.now() - syncAt < SYNC_MIN_INTERVAL) return;
+  syncBusy = true;
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 2500);
+  try {
+    const r = await fetch(base.replace(/\/+$/, '') + '/api/history', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ source: 'usage', points }),
+      cache: 'no-store',
+      signal: ctl.signal
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    syncLastT = points.reduce((m, p) => Math.max(m, p.t), syncLastT);
+    syncAt = Date.now();
+  } catch (e) {
+    // 服务器没开、跨域被拦、代理地址填错都走这里：静默退避，绝不影响直连和页面渲染
+    syncFailAt = Date.now();
+  } finally {
+    clearTimeout(timer);
+    syncBusy = false;
+  }
+}
+
+// ---- 两本采样账合并（服务器可用时）----
+// remotePoints 是服务器上油猴记的点；服务器没开时为空，mergedHistory() 等同本地历史。
+let remotePoints = [];
+let remoteAt = 0, remoteFailAt = 0, remoteBusy = false;
+
+// 同一分钟只保留一个点，优先油猴（官方页面更新更及时）
+function mergeHistories(usagePts, tmPts) {
+  const map = new Map();
+  for (const p of usagePts) map.set(Math.floor(p.t / 60000), p);
+  for (const p of tmPts) map.set(Math.floor(p.t / 60000), p);
+  return [...map.values()].sort((a, b) => a.t - b.t);
+}
+
+function mergedHistory() {
+  // 官网（油猴）优先：远程点新鲜且跨度够，就直接用官网序列，避免 API 的滞后点把速度带偏
+  const last = remotePoints.length ? remotePoints[remotePoints.length - 1].t : 0;
+  const fresh = last && Date.now() - last <= 30 * 60e3;
+  const span = remotePoints.length >= 2 ? last - remotePoints[0].t : 0;
+  if (fresh && span >= VEL_MIN_SPAN_MS) return remotePoints;
+  // 官网没开/太旧/点太少：用本地 + 远程合并兜底
+  return mergeHistories(loadHistory(), remotePoints);
+}
+
+// 从本地代理拉油猴的点（可选）。失败静默退避，不阻塞页面。
+async function fetchRemoteHistory() {
+  const base = proxyBase();
+  if (!base || remoteBusy) return;
+  if (Date.now() - remoteFailAt < SYNC_BACKOFF_MS) return;
+  if (remoteAt && Date.now() - remoteAt < 5 * 60e3) return;
+  remoteBusy = true;
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 2000);
+  try {
+    const r = await fetch(base.replace(/\/+$/, '') + '/api/history/points', {
+      cache: 'no-store',
+      signal: ctl.signal
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const j = await r.json();
+    if (j && Array.isArray(j.tampermonkey)) {
+      remotePoints = j.tampermonkey.filter(p => p && Number.isFinite(p.t));
+      remoteAt = Date.now();
+      // 合并后的点更全，立刻按新历史重算一次速度
+      if (state.go.status === 'ready' && state.go.data) renderGo();
+    } else {
+      // 旧版代理会返回路由列表：当作失败退避，避免每次刷新都白问
+      remoteFailAt = Date.now();
+    }
+  } catch (e) {
+    remoteFailAt = Date.now();
+  } finally {
+    clearTimeout(timer);
+    remoteBusy = false;
+  }
+}
+
 // 最小二乘回归小盒子：接口百分比取整到整数，多点拟合可抵消取整量化误差。
 // 显示和告警共用这一个，避免两份算法以后改叉；门槛由调用方定（稳定6小时/估算30分钟）。
 function regressVelocity(points, key, minSpanMs, minPoints) {
@@ -910,7 +1005,7 @@ function regressVelocity(points, key, minSpanMs, minPoints) {
 // 返回 {v: 每天百分点}；检测到重置（骤降超5个点）则只用重置后数据；跨度不足返回 null
 // 注意：告警必须调这个稳定版（6小时门槛），显示请调下面的 velocityDisplay()
 function velocity(key) {
-  const h = loadHistory().filter(p => p[key] != null);
+  const h = mergedHistory().filter(p => p[key] != null);
   if (h.length < 2) return null;
   const now = Date.now();
   let start = 0;
@@ -947,7 +1042,7 @@ function velocityDisplay(key) {
     return { v: stable.v, spanMs: stable.spanMs, estimated: false };
   }
   // 稳定版不够，同一批点再按估算门槛试一次（重置切段逻辑与上面保持一致）
-  const h = loadHistory().filter(p => p[key] != null);
+  const h = mergedHistory().filter(p => p[key] != null);
   let points = [];
   if (h.length >= 2) {
     let start = 0;
@@ -1522,6 +1617,8 @@ async function refreshAll(manual) {
   }
   setRefreshing(true);
   const jobs = [];
+  // 与油猴共享历史（可选）：和 Go 数据并行拉，失败不影响本地直连
+  jobs.push(fetchRemoteHistory());
   if (goK || proxyBase()) {
     state.go.status = 'loading';
     state.go.error = '';
@@ -1549,7 +1646,11 @@ async function refreshAll(manual) {
     );
   }
   await Promise.all(jobs);
-  if (state.go.status === 'ready' && state.go.data) recordHistory(state.go.data);
+  if (state.go.status === 'ready' && state.go.data) {
+    recordHistory(state.go.data);
+    // 尽力推送到本地代理；不 await，失败也不影响页面（服务器是可选增强）
+    syncHistoryToProxy();
+  }
   // 仅在「用量明细」标签可见时重渲染：标签隐藏时数据没变，没必要重解析整个缓存
   if (state.mu.status === 'ready' && !$('#tab-models').hidden) { state.mu.status = 'ready'; renderModels(); }
   setRefreshing(false);

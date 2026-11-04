@@ -179,6 +179,8 @@
   #privacy-legend{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
   #privacy-legend .sep{width:1px;height:20px;background:var(--border-strong);margin:0 2px}
   #privacy-legend .chip.on{border-color:var(--accent);font-weight:600;box-shadow:0 0 0 1px var(--accent) inset}
+  /* 2026-11-01 系列图例选中态：与隐私图例保持一致的强调边框，未选中不做淡化 */
+  #legend .chip.on{border-color:var(--accent);font-weight:600;box-shadow:0 0 0 1px var(--accent) inset}
   .chip{
     display:inline-flex;align-items:center;gap:7px;
     font:inherit;font-size:13.5px;color:var(--text);
@@ -190,6 +192,31 @@
   .chip .cdot{width:10px;height:10px;border-radius:50%;background:var(--c,#94a3b8);flex:none}
   .chip.off{opacity:.32}
   .chip.all{border-color:var(--border-strong);font-weight:600}
+
+  /* ---------- 用量测算（2026-11-01 新增） ---------- */
+  /* 面板：输入本轮 tokens；表格列 .col-calc 默认隐藏，输入有效 token 后由 JS 给 table 加 .calc-on */
+  .calc{
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+    background:var(--card);border:1px solid var(--border);
+    border-radius:var(--radius);padding:12px 16px;margin-bottom:14px;
+  }
+  .calc-title{font-weight:700;font-size:14px}
+  .calc-field{display:inline-flex;align-items:center;gap:7px;font-size:13.5px;color:var(--muted)}
+  .calc-field input{
+    width:110px;font:inherit;font-size:14px;color:var(--text);
+    background:var(--card-solid);border:1px solid var(--border);
+    border-radius:9px;padding:7px 10px;outline:none;
+    transition:border-color .18s ease;
+  }
+  .calc-field input:focus{border-color:var(--accent)}
+  .calc-field input::placeholder{color:var(--muted)}
+  .calc-hint{font-size:12.5px;color:var(--muted)}
+  .col-calc{display:none}
+  table.calc-on .col-calc{display:table-cell}
+  .calc-pct{font-family:var(--mono);font-weight:700;white-space:nowrap}
+  .calc-pct.hot{color:#f87171}
+  .calc-sub{display:block;font-size:11.5px;color:var(--muted);font-family:var(--mono);white-space:nowrap}
+  .calc-na{color:var(--muted);font-size:12px;white-space:nowrap}
 
   /* ---------- table ---------- */
   .table-card{
@@ -315,6 +342,8 @@
     .wrap{padding:20px 14px 48px}
     .col-cr{display:none}
     .brand p{display:none}
+    .calc{gap:10px}
+    .calc-field input{width:92px}
   }
 </style>
 </head>
@@ -372,6 +401,20 @@
     <div class="stat"><div class="v" id="st-max">—</div><div class="l" id="st-max-l">最高输入价 / 1M</div></div>
   </section>
 
+  <!-- 2026-11-01 用量测算：输入本轮 tokens → 表格多一列显示花费 / 占月额度 / 可跑轮数 -->
+  <section class="calc" id="calc">
+    <span class="calc-title" id="calc-title">用量测算</span>
+    <label class="calc-field"><span id="calc-in-label">输入</span>
+      <input id="calc-in" type="text" placeholder="如 77.5k" autocomplete="off" aria-label="本轮输入 tokens">
+      <span>tokens</span>
+    </label>
+    <label class="calc-field"><span id="calc-out-label">输出</span>
+      <input id="calc-out" type="text" placeholder="0" autocomplete="off" aria-label="本轮输出 tokens">
+      <span>tokens</span>
+    </label>
+    <span class="calc-hint" id="calc-hint">支持 k / m / 万，如 77.5k；按官方单价粗算，未计缓存读取</span>
+  </section>
+
   <div class="controls">
     <div class="search">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
@@ -392,7 +435,7 @@
 
   <div class="table-card">
     <div class="table-wrap">
-      <table>
+      <table id="price-table">
         <thead id="thead">
           <tr>
             <th>#</th>
@@ -405,6 +448,9 @@
             <th class="num col-cr" data-key="cacheRead"><button class="th-btn" data-key="cacheRead">缓存读取<span class="ic"></span></button></th>
             <th class="num col-cw" data-key="cacheWrite"><button class="th-btn" data-key="cacheWrite">缓存写入<span class="ic"></span></button></th>
             <th class="num" data-key="allowance"><button class="th-btn" data-key="allowance">每月使用额度<span class="ic"></span></button></th>
+            <th class="num col-calc" data-key="roundPct" title="本轮花费 ÷ 该模型每月额度；点表头按占比排序">
+              <button class="th-btn" data-key="roundPct">本轮占月额度<span class="ic"></span></button>
+            </th>
             <th data-key="privacy"><button class="th-btn" data-key="privacy">隐私<span class="ic"></span></button></th>
           </tr>
         </thead>
@@ -418,6 +464,7 @@
       <li id="foot-price"></li>
       <li id="foot-peak"></li>
       <li id="rate-note"></li>
+      <li id="calc-note" hidden></li>
       <li id="fx-note" hidden></li>
       <li id="privacy-note-head" style="display:none"></li>
     </ul>
@@ -1008,6 +1055,8 @@ const LS_RATIO = "opengo-ratio-mode";
 const LS_CUR = "opengo-currency";
 const LS_RATE = "opengo-usd-cny-rate-v1";
 const LS_LANG = "opengo-lang";
+// 2026-11-01 用量测算：记住上次填的 tokens（原始字符串，保留 77.5k 这类写法）
+const LS_CALC = "opengo-calc-v1";
 
 const state = {
   lang: "zh",
@@ -1024,7 +1073,11 @@ const state = {
   currency: "usd",
   rate: null,
   privacyFilter: "all",
-  off: new Set()
+  // 2026-11-01 系列筛选改为「包含式多选」：picked 为空 = 显示全部；
+  // 点某系列加入 picked（只看它），再点同一系列则移除；点「全部」清空。
+  picked: new Set(),
+  // 用量测算：Raw 保留输入框原文，Tok 是解析后的 token 数（0 表示没填/无效）
+  calc: { inRaw: "", outRaw: "", inTok: 0, outTok: 0 }
 };
 
 const $ = s => document.querySelector(s);
@@ -1091,6 +1144,20 @@ const I18N = {
     notesSep: "：",
     srcLabel: "数据来源：", docLink: "OpenCode Go 官方文档",
     snapLabel: "内置快照：",
+    // 2026-11-01 用量测算
+    calcTitle: "用量测算",
+    calcInLabel: "输入", calcOutLabel: "输出",
+    calcInPh: "如 77.5k", calcOutPh: "0",
+    calcHint: "支持 k / m / 万，如 77.5k；按官方单价粗算，未计缓存读取",
+    calcNote: "测算口径：本轮花费 = 输入 tokens × 输入价 + 输出 tokens × 输出价（均按每 1M tokens 计）；占比 = 花费 ÷ 该模型「每月使用额度」。缓存读取未计入，实际通常更便宜。",
+    thRoundPct: "本轮占月额度",
+    thRoundPctTitle: "本轮花费 ÷ 该模型每月额度；点表头按占比排序",
+    calcUnlimited: "不限",
+    calcFree: "免费",
+    calcNotApply: "不适用",
+    calcNotApplyTitle: "输入 {n} tokens 已超过该档上限 {limit}，此档不生效",
+    calcRounds: "≈ {n} 轮/月",
+    calcLessThanOne: "不到 1 轮/月",
     consolePre: "使用额度可在 ", consoleLink: "控制台", consolePost: " 查看"
   },
   en: {
@@ -1151,6 +1218,20 @@ const I18N = {
     notesSep: ": ",
     srcLabel: "Source: ", docLink: "OpenCode Go official docs",
     snapLabel: "Built-in snapshot: ",
+    // 2026-11-01 usage estimator
+    calcTitle: "Usage estimator",
+    calcInLabel: "Input", calcOutLabel: "Output",
+    calcInPh: "e.g. 77.5k", calcOutPh: "0",
+    calcHint: "Accepts k / m / 万 (10k), e.g. 77.5k. Rough estimate from list prices; cache reads not counted.",
+    calcNote: "How it works: cost = input tokens × input price + output tokens × output price (per 1M tokens); share = cost ÷ that model's monthly limit. Cache reads are not counted, so real usage is usually cheaper.",
+    thRoundPct: "Share of monthly limit",
+    thRoundPctTitle: "This round's cost ÷ the model's monthly limit; click to sort",
+    calcUnlimited: "Unlimited",
+    calcFree: "Free",
+    calcNotApply: "N/A",
+    calcNotApplyTitle: "{n} input tokens exceed this tier's limit of {limit}, so this tier does not apply",
+    calcRounds: "≈ {n} rounds/mo",
+    calcLessThanOne: "under 1 round/mo",
     consolePre: "Check your usage in the ", consoleLink: "console", consolePost: ""
   }
 };
@@ -1242,6 +1323,107 @@ function effVal(v, allowance) {
   }
   return v;
 }
+
+/* ---------- 用量测算（2026-11-01） ---------- */
+// 把用户输入转成 token 数：支持 77500 / 77,500 / 77.5k / 1.2m / 7.75万；无法识别返回 null
+function parseTokenInput(raw) {
+  const s = String(raw == null ? "" : raw).toLowerCase().replace(/[,，\s]/g, "");
+  if (!s) return null;
+  const m = s.match(/^(\d+(?:\.\d+)?)([kmw万]?)$/);
+  if (!m) return null;
+  const n = parseFloat(m[1]);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  const unit = m[2];
+  const mult = unit === "k" ? 1e3 : unit === "m" ? 1e6 : (unit === "万" || unit === "w") ? 1e4 : 1;
+  const v = n * mult;
+  if (!Number.isFinite(v) || v <= 0 || v > 1e12) return null; // 上限 1 万亿，防误输入
+  return Math.round(v);
+}
+
+// 价格档里的上下文阈值：「≤ 200K tokens」→ { kind:"le", limit:200000 }
+function tierBound(tier) {
+  const m = String(tier || "").match(/(≤|<|>|≥)\s*([\d.]+)\s*([km]?)/i);
+  if (!m) return null;
+  const n = parseFloat(m[2]);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  const mult = /m/i.test(m[3]) ? 1e6 : /k/i.test(m[3]) ? 1e3 : 1;
+  return { kind: /≤|</.test(m[1]) ? "le" : "gt", limit: n * mult };
+}
+
+// 计算某一行在「本轮 tokens」下的花费与占月额度；没填 token 返回 null
+function calcRound(r) {
+  const inTok = state.calc.inTok, outTok = state.calc.outTok;
+  if (!inTok) return null;
+  const b = tierBound(r.tier);
+  if (b) {
+    // 官方按本次请求的 prompt tokens 选档：≤N 档只在上限内生效，>N 档只在超过上限后生效
+    if (b.kind === "le" && inTok > b.limit) return { applicable: false, limit: b.limit };
+    if (b.kind === "gt" && inTok <= b.limit) return { applicable: false, limit: b.limit };
+  }
+  const cost = inTok / 1e6 * (r.input || 0) + outTok / 1e6 * (r.output || 0);
+  const unlimited = r.allowance != null && r.allowance >= 9999;
+  const pct = unlimited || !r.allowance ? null : cost / r.allowance * 100;
+  const rounds = unlimited ? Infinity : (cost > 0 ? Math.floor(r.allowance / cost) : Infinity);
+  return { applicable: true, cost, pct, rounds, unlimited };
+}
+
+// 百分比精度：大数取整、小数保 3 位，避免「0.0000%」这种没信息量的显示
+function fmtPct(p) {
+  if (p == null) return "—";
+  if (p >= 100) return Math.round(p) + "%";
+  if (p >= 10) return p.toFixed(1) + "%";
+  if (p >= 1) return p.toFixed(2) + "%";
+  if (p >= 0.01) return p.toFixed(3) + "%";
+  return "<0.01%";
+}
+
+// 单轮花费按当前货币显示；小额保 4 位，避免 $0.0116 被压成 $0.01
+function fmtRoundCost(cost) {
+  const v = convCur(cost || 0);
+  const sym = curSym();
+  if (!v) return sym + "0";
+  const abs = Math.abs(v);
+  let s;
+  if (abs >= 1) s = v.toFixed(2);
+  else if (abs >= 0.01) s = v.toFixed(4);
+  else s = v.toPrecision(2);
+  return sym + String(Number(s));
+}
+
+function fmtRounds(n) {
+  if (!Number.isFinite(n)) return t("calcUnlimited");
+  if (n < 1) return t("calcLessThanOne");
+  return t("calcRounds", { n: Math.floor(n).toLocaleString(localeTag()) });
+}
+
+// 表格「本轮占月额度」单元格
+function calcCell(r) {
+  const c = calcRound(r);
+  if (!c) return "";
+  if (!c.applicable) {
+    return '<td class="num col-calc"><span class="calc-na" title="' +
+      esc(t("calcNotApplyTitle", {
+        n: Math.round(state.calc.inTok).toLocaleString(localeTag()),
+        limit: Math.round(c.limit).toLocaleString(localeTag())
+      })) + '">' + esc(t("calcNotApply")) + "</span></td>";
+  }
+  if (c.unlimited) {
+    const head = c.cost === 0 ? t("calcFree") : t("calcUnlimited");
+    return '<td class="num col-calc"><span class="calc-pct">' + esc(head) + '</span>' +
+      '<span class="calc-sub">' + esc(fmtRoundCost(c.cost)) + "</span></td>";
+  }
+  if (c.pct == null) return '<td class="num col-calc muted">—</td>';
+  const hot = c.pct >= 100 ? " hot" : "";
+  return '<td class="num col-calc"><span class="calc-pct' + hot + '">' + fmtPct(c.pct) + '</span>' +
+    '<span class="calc-sub">' + esc(fmtRoundCost(c.cost)) + " · " + esc(fmtRounds(c.rounds)) + "</span></td>";
+}
+
+// 页脚口径说明：只有填了 token 才显示，避免平时多一行字
+function renderCalcNote() {
+  const el = $("#calc-note");
+  if (el) el.hidden = !state.calc.inTok;
+}
+
 function tierClass(t) {
   if (!t) return "";
   const s = t.toLowerCase();
@@ -1338,15 +1520,27 @@ function presentSeries() {
 
 function renderLegend() {
   const legend = $("#legend");
-  const html = ['<button class="chip all" data-s="*">' + esc(t("legendAll")) + "</button>"];
+  // 2026-11-01 包含式多选：picked 为空时「全部」高亮；选中的系列 chip 高亮，其余保持原样不淡化。
+  const allOn = state.picked.size === 0;
+  const html = ['<button class="chip all' + (allOn ? " on" : "") + '" data-s="*" aria-pressed="' + (allOn ? "true" : "false") + '">' + esc(t("legendAll")) + "</button>"];
   for (const s of presentSeries()) {
-    const off = state.off.has(s) ? " off" : "";
-    html.push('<button class="chip' + off + '" data-s="' + esc(s) + '" style="--c:' + colorOf(s) + '"><i class="cdot"></i>' + esc(seriesLabel(s)) + "</button>");
+    const on = state.picked.has(s);
+    html.push('<button class="chip' + (on ? " on" : "") + '" data-s="' + esc(s) + '" style="--c:' + colorOf(s) + '" aria-pressed="' + (on ? "true" : "false") + '"><i class="cdot"></i>' + esc(seriesLabel(s)) + "</button>");
   }
   legend.innerHTML = html.join("");
 }
 
 function cmp(a, b, key, dir) {
+  if (key === "roundPct") {
+    const ca = calcRound(a), cb = calcRound(b);
+    // 不适用 / 无结果排最后；免费/不限按 0% 处理
+    const pa = ca && ca.applicable ? (ca.pct == null ? 0 : ca.pct) : null;
+    const pb = cb && cb.applicable ? (cb.pct == null ? 0 : cb.pct) : null;
+    if (pa == null && pb == null) return 0;
+    if (pa == null) return 1;
+    if (pb == null) return -1;
+    return (pa - pb) * dir;
+  }
   if (key === "privacy") return (privacyRank(a) - privacyRank(b)) * dir || a.name.localeCompare(b.name, localeTag()) * dir;
   const va = effVal(a[key], a.allowance), vb = effVal(b[key], b.allowance);
   if (key === "allowance") {
@@ -1398,7 +1592,8 @@ function renderPrivacyLegend() {
 function visibleRows() {
   const q = state.query;
   return state.rows
-    .filter(r => !state.off.has(r.series))
+    // 2026-11-01 包含式：没选任何系列（picked 为空）就显示全部，否则只保留被选中的系列
+    .filter(r => state.picked.size === 0 || state.picked.has(r.series))
     .filter(matchPrivacy)
     .filter(r => !q || (r.name + " " + (r.tier || "") + " " + tierLabel(r.tier) + " " + r.series + " " + seriesLabel(r.series) + " " + (r.training ? "训练 training" : "") + " " + retainLabel(r)).toLowerCase().includes(q))
     .sort((a, b) => cmp(a, b, state.sortKey, state.sortDir));
@@ -1474,15 +1669,20 @@ function rowHtml(r, i) {
     '<td class="num col-cr">' + fmtPrice(r.cacheRead, r.allowance) + "</td>" +
     '<td class="num col-cw">' + fmtPrice(r.cacheWrite, r.allowance) + "</td>" +
     '<td class="num"><span class="allow-wrap">' + allowCell + "</span></td>" +
+    (state.calc.inTok ? calcCell(r) : "") +
     "<td>" + privacyCell(r) + "</td>" +
     "</tr>";
 }
 
 function renderTable() {
   const rows = visibleRows();
+  const calcOn = !!state.calc.inTok;
+  const table = $("#price-table");
+  if (table) table.classList.toggle("calc-on", calcOn);
+  const cols = calcOn ? 12 : 11; // 空结果行的 colspan，必须跟着列数走
   $("#tbody").innerHTML = rows.length
     ? rows.map(rowHtml).join("")
-    : '<tr><td class="empty" colspan="11">' + esc(t("emptyTable")) + "</td></tr>";
+    : '<tr><td class="empty" colspan="' + cols + '">' + esc(t("emptyTable")) + "</td></tr>";
   document.querySelectorAll("#thead th[data-key]").forEach(th => {
     if (th.dataset.key === state.sortKey) {
       th.setAttribute("aria-sort", state.sortDir === 1 ? "ascending" : "descending");
@@ -1499,6 +1699,7 @@ function render() {
   renderTable();
   renderPrivacyNotes();
   renderRateNote();
+  renderCalcNote();
   syncPriceModeUi();
 }
 
@@ -1765,6 +1966,16 @@ const usageBtn = $("#usage-btn");
   $("#st-count-l").textContent = t("stCount");
   $("#st-series-l").textContent = t("stSeries");
   $("#search").setAttribute("placeholder", t("searchPh"));
+  // 2026-11-01 用量测算控件文案
+  $("#calc-title").textContent = t("calcTitle");
+  $("#calc-in-label").textContent = t("calcInLabel");
+  $("#calc-out-label").textContent = t("calcOutLabel");
+  $("#calc-in").placeholder = t("calcInPh");
+  $("#calc-out").placeholder = t("calcOutPh");
+  $("#calc-hint").textContent = t("calcHint");
+  $("#calc-note").textContent = t("calcNote");
+  const calcTh = document.querySelector('#thead th[data-key="roundPct"]');
+  if (calcTh) calcTh.title = t("thRoundPctTitle");
   $("#privacy-legend").title = t("privacyLegendTitle");
   $("#price-mode").title = t("priceModeTitle");
   $("#currency-mode").title = t("currencyTitle");
@@ -1772,7 +1983,7 @@ const usageBtn = $("#usage-btn");
   if (ratioBtn) ratioBtn.textContent = t("ratioBtn");
   $("#th-id").textContent = t("thId");
   $("#th-tier").textContent = t("thTier");
-  const sortable = { series: "thSeries", name: "thName", allowance: "thAllow", privacy: "thPrivacy" };
+  const sortable = { series: "thSeries", name: "thName", allowance: "thAllow", privacy: "thPrivacy", roundPct: "thRoundPct" };
   document.querySelectorAll("#thead th[data-key]").forEach(th => {
     const k = th.dataset.key;
     if (!sortable[k]) return;
@@ -1819,6 +2030,28 @@ function bindEvents() {
     state.query = e.target.value.trim().toLowerCase();
     renderTable();
   });
+  // 用量测算：输入时实时重算（行数只有几十行，无需防抖）
+  const onCalcInput = e => {
+    if (e.target.id === "calc-in") {
+      state.calc.inRaw = e.target.value;
+      state.calc.inTok = parseTokenInput(e.target.value) || 0;
+    } else {
+      state.calc.outRaw = e.target.value;
+      state.calc.outTok = parseTokenInput(e.target.value) || 0;
+    }
+    try {
+      localStorage.setItem(LS_CALC, JSON.stringify({ in: state.calc.inRaw, out: state.calc.outRaw }));
+    } catch (err) { /* ignore */ }
+    // 清空 token 后测算列会被隐藏；若当前正好按该列排序，回到默认排序列，避免「看不见的排序」生效
+    if (!state.calc.inTok && state.sortKey === "roundPct") {
+      state.sortKey = "output";
+      state.sortDir = 1;
+    }
+    renderTable();
+    renderCalcNote();
+  };
+  $("#calc-in").addEventListener("input", onCalcInput);
+  $("#calc-out").addEventListener("input", onCalcInput);
   $("#thead").addEventListener("click", e => {
     const btn = e.target.closest("button[data-key]");
     if (!btn) return;
@@ -1839,9 +2072,10 @@ function bindEvents() {
     const chip = e.target.closest(".chip");
     if (!chip) return;
     const s = chip.dataset.s;
-    if (s === "*") state.off.clear();
-    else if (state.off.has(s)) state.off.delete(s);
-    else state.off.add(s);
+    // 2026-11-01 包含式多选：「全部」= 清空选择；点未选中的系列 = 加入；点已选中的系列 = 取消该系列
+    if (s === "*") state.picked.clear();
+    else if (state.picked.has(s)) state.picked.delete(s);
+    else state.picked.add(s);
     renderLegend();
     renderTable();
   });
@@ -1880,6 +2114,18 @@ function bindEvents() {
     state.currency = localStorage.getItem(LS_CUR) === "cny" ? "cny" : "usd";
     const rc = loadRateCache();
     if (rc) state.rate = rc;
+    // 2026-11-01 恢复上次填写的 tokens（必须在首次 applyData() 渲染前生效）
+    try {
+      const cd = JSON.parse(localStorage.getItem(LS_CALC) || "null");
+      if (cd) {
+        state.calc.inRaw = typeof cd.in === "string" ? cd.in : "";
+        state.calc.outRaw = typeof cd.out === "string" ? cd.out : "";
+        state.calc.inTok = parseTokenInput(state.calc.inRaw) || 0;
+        state.calc.outTok = parseTokenInput(state.calc.outRaw) || 0;
+      }
+    } catch (e2) { /* ignore */ }
+    $("#calc-in").value = state.calc.inRaw;
+    $("#calc-out").value = state.calc.outRaw;
     const sd = $("#snapshot-date");
     if (sd) sd.textContent = SNAPSHOT.date;
   } catch (e) { /* ignore */ }

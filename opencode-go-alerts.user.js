@@ -2,15 +2,17 @@
 // @name         OpenCode Go 配速预警
 // @name:zh-CN   OpenCode Go 配速预警
 // @namespace    https://github.com/axiryyyy/opencode-go-pricing
-// @version      1.1.0
-// @description  在官方 Go 控制台页面顶部显示配速预警：90%/用完提醒、周重置晚于月重置的搁浅分析、快慢配速临界值。官方已改版为 /console：优先同源 fetch zen usage 接口（精确数据），失败再读新版用量卡片 DOM（progressbar aria-valuenow + title 绝对时间）。
-// @description:zh-CN 在官方 Go 控制台页面顶部显示配速预警：90%/用完提醒、周重置晚于月重置的搁浅分析、快慢配速临界值。官方已改版为 /console：优先同源 fetch zen usage 接口（精确数据），失败再读新版用量卡片 DOM（progressbar aria-valuenow + title 绝对时间）。
+// @version      1.3.0
+// @description  在官方 Go 控制台页面顶部显示配速预警：90%/用完提醒、周重置晚于月重置的搁浅分析、快慢配速临界值。官方已改版为 /console：优先同源 fetch Go 用量接口 /inference/go/v1/usage（精确数据），失败再读新版用量卡片 DOM；同步支持 /console activity 页（月额度 DOM 兜底）。
+// @description:zh-CN 在官方 Go 控制台页面顶部显示配速预警：90%/用完提醒、周重置晚于月重置的搁浅分析、快慢配速临界值。官方已改版为 /console：优先同源 fetch Go 用量接口 /inference/go/v1/usage（精确数据），失败再读新版用量卡片 DOM；同步支持 /console activity 页（月额度 DOM 兜底）。
 // @author        axiryyyy
 // @license      MIT
 // @match        https://opencode.ai/console/*/go*
 // @match        https://opencode.ai/workspace/*/go*
+// @match        https://opencode.ai/console/*/activity*
 // @run-at       document-idle
-// @grant        none
+// @grant        GM_xmlhttpRequest
+// @connect      127.0.0.1
 // ==/UserScript==
 
 'use strict';
@@ -34,6 +36,10 @@ const HIST_KEEP_MS = 7 * 86400e3;
 const VEL_LOOKBACK_MS = 24 * 3600e3;
 const VEL_MIN_SPAN_MS = 6 * 3600e3;
 const BANNER_ID = 'opengo-tm-alerts';
+// 采样历史推送目标（可选）：没开代理/连不上就静默失败，不影响原有抓取和横幅
+const SYNC_URL = 'http://127.0.0.1:8788/api/history';
+const SYNC_BACKOFF_MS = 10 * 60e3;
+let syncLastT = 0, syncFailAt = 0, syncBusy = false;
 
 const WINDOWS = [
   { key: 'rolling', label: '5 小时', en: 'rolling' },
@@ -69,8 +75,92 @@ function recordHistory(data) {
     localStorage.setItem(LS_HISTORY, JSON.stringify(h.filter(p => p.t >= cutoff).slice(-3000)));
   } catch (e) { /* 存储不可用时静默跳过，静态规则照常工作 */ }
 }
+// 把本轮采样历史增量推送到本地代理（可选）。没开代理/连不上时静默失败，10 分钟内不重试。
+// 用 GM_xmlhttpRequest 而不是 fetch：opencode.ai 的 CSP/CORS 可能拦本机请求，用户脚本请求不受限。
+function syncHistory() {
+  if (syncBusy) return;
+  if (Date.now() - syncFailAt < SYNC_BACKOFF_MS) return;
+  const points = loadHistory().filter(p => p.t > syncLastT).slice(-3000);
+  if (!points.length) return;
+  syncBusy = true;
+  try {
+    GM_xmlhttpRequest({
+      method: 'POST',
+      url: SYNC_URL,
+      headers: { 'Content-Type': 'application/json' },
+      data: JSON.stringify({ source: 'tampermonkey', points }),
+      timeout: 3000,
+      onload: r => {
+        syncBusy = false;
+        if (r.status === 200) {
+          syncLastT = points.reduce((m, p) => Math.max(m, p.t), syncLastT);
+        } else {
+          syncFailAt = Date.now();
+        }
+      },
+      onerror: () => { syncBusy = false; syncFailAt = Date.now(); },
+      ontimeout: () => { syncBusy = false; syncFailAt = Date.now(); }
+    });
+  } catch (e) {
+    syncBusy = false;
+    syncFailAt = Date.now();
+  }
+}
+// ---- 两本采样账合并（服务器可用时）----
+// remotePoints 是服务器上 usage.html 记的点；服务器没开时为空，mergedHistory() 等同本地。
+let remotePoints = [];
+let remoteAt = 0, remoteFailAt = 0, remoteBusy = false;
+let lastData = null;
+
+function mergeHistories(usagePts, tmPts) {
+  const map = new Map();
+  for (const p of usagePts) map.set(Math.floor(p.t / 60000), p);
+  for (const p of tmPts) map.set(Math.floor(p.t / 60000), p);
+  return [...map.values()].sort((a, b) => a.t - b.t);
+}
+
+function mergedHistory() {
+  // 官网（本地油猴）优先：本地跨度够就直接用；不够才用服务器上的 usage 点补齐
+  const local = loadHistory();
+  const span = local.length >= 2 ? local[local.length - 1].t - local[0].t : 0;
+  if (span >= VEL_MIN_SPAN_MS) return local;
+  return mergeHistories(remotePoints, local);
+}
+
+function fetchRemoteHistory() {
+  if (remoteBusy) return;
+  if (Date.now() - remoteFailAt < SYNC_BACKOFF_MS) return;
+  if (remoteAt && Date.now() - remoteAt < 5 * 60e3) return;
+  remoteBusy = true;
+  try {
+    GM_xmlhttpRequest({
+      method: 'GET',
+      url: 'http://127.0.0.1:8788/api/history/points',
+      timeout: 2500,
+      onload: r => {
+        remoteBusy = false;
+        if (r.status !== 200) { remoteFailAt = Date.now(); return; }
+        try {
+          const j = JSON.parse(r.responseText);
+          if (j && Array.isArray(j.usage)) {
+            remotePoints = j.usage.filter(p => p && Number.isFinite(p.t));
+            remoteAt = Date.now();
+            // 合并后的点更全，立刻重算一次横幅
+            if (lastData) renderBanner(analyzeGo(lastData));
+          }
+        } catch (e) { remoteFailAt = Date.now(); }
+      },
+      onerror: () => { remoteBusy = false; remoteFailAt = Date.now(); },
+      ontimeout: () => { remoteBusy = false; remoteFailAt = Date.now(); }
+    });
+  } catch (e) {
+    remoteBusy = false;
+    remoteFailAt = Date.now();
+  }
+}
+
 function velocity(key) {
-  const h = loadHistory().filter(p => p[key] != null);
+  const h = mergedHistory().filter(p => p[key] != null);
   if (h.length < 2) return null;
   const now = Date.now();
   let start = 0;
@@ -371,8 +461,58 @@ function scrapeDOMold() {
   });
   return found ? out : null;
 }
+// Activity 页兜底（2026-11-01 新增）：section.activity-workspace[aria-label="Go usage"]
+// 实测结构（存档 Activity _ OpenCode Console.html 约 1349 行）：
+//  - div.activity-section-heading h1 a 文本如 "70%"（月额度，链到 .../activity/usage?range=mtd）
+//  - caption 文本如 "Go usage · Ends Nov 6 · On pace for 84%"（只有月日，无年份时刻）
+//  - svg[aria-label] 如 "70% of the monthly Go allowance used. Forecast 84% by Nov 6."
+// 该页只有月窗：周/5h 留空，analyzeGo 本就支持缺窗跳过；官方 "On pace" 预测值不接入告警，仍用自家 velocity()。
+// "Ends Nov 6" 按最近未来的该月日、中午 12:00 本地时间推算；解析失败返回 null（显示"—"），不阻塞百分比。
+function parseActivityEndDate(sec) {
+  try {
+    const txt = (sec && sec.textContent) || '';
+    const m = txt.match(/Ends?\s+([A-Za-z]{3,9})\s+(\d{1,2})/i);
+    if (!m) return null;
+    const months = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, sept: 8, oct: 9, nov: 10, dec: 11 };
+    const mi = months[String(m[1]).slice(0, 4).toLowerCase().slice(0, 3)];
+    const day = parseInt(m[2], 10);
+    if (mi == null || !Number.isFinite(day) || day < 1 || day > 31) return null;
+    const now = new Date();
+    let d = new Date(now.getFullYear(), mi, day, 12, 0, 0);
+    if (d.getTime() <= now.getTime()) d = new Date(now.getFullYear() + 1, mi, day, 12, 0, 0);
+    return d.getTime();
+  } catch (e) { return null; }
+}
+function scrapeActivityDOM() {
+  const sec = document.querySelector('section.activity-workspace[aria-label="Go usage"]');
+  if (!sec) return null;
+  // 百分比优先读大标题 h1 a（如 "70%"），取不到再读图表 svg 的 aria-label。
+  let pc = NaN;
+  const h1a = sec.querySelector('.activity-section-heading h1 a');
+  if (h1a) {
+    const m = String(h1a.textContent || '').match(/([\d.]+)\s*%/);
+    if (m) pc = parseFloat(m[1]);
+  }
+  if (!Number.isFinite(pc)) {
+    const svg = sec.querySelector('svg[aria-label]');
+    if (svg) {
+      const m2 = String(svg.getAttribute('aria-label') || '').match(/([\d.]+)\s*%/);
+      if (m2) pc = parseFloat(m2[1]);
+    }
+  }
+  if (!Number.isFinite(pc)) return null;
+  const txt = sec.textContent || '';
+  return {
+    monthly: {
+      percent: Math.min(100, Math.max(0, pc)),
+      status: /限流|超限|已用完|rate-limited|limited/i.test(txt) ? 'rate-limited' : 'ok',
+      resetsAt: parseActivityEndDate(sec)
+    }
+  };
+}
 async function scrape() {
-  return (await fetchAPIUsage()) || (scrapeDOM() || scrapeDOMold());
+  // 优先级：① 同源 Go 用量接口（精确，三窗齐全）；② go 页卡片 DOM；③ activity 页 DOM（仅月窗）；④ 旧版兜底。
+  return (await fetchAPIUsage()) || (scrapeDOM() || scrapeActivityDOM() || scrapeDOMold());
 }
 
 /* ---------- render：样式全内联，不污染官方页面 ---------- */
@@ -427,7 +567,10 @@ async function tick() {
   try {
     const data = await scrape();
     if (!data) return; // 官方改版或未渲染：静默
+    lastData = data;
     recordHistory(data);
+    syncHistory();
+    fetchRemoteHistory();
     renderBanner(analyzeGo(data));
   } catch (e) { /* 出错也不打扰官方页面 */ }
 }
