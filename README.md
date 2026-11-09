@@ -32,14 +32,14 @@ A zero-dependency, single-file web page that aggregates every [OpenCode Go](http
 A companion page listing **only the current limited-time free models**, focused on privacy:
 
 - **Free is not private**: the 13 free models are split into four tiers taken from the official privacy section, sorted **zero-retention first**
-  - 🟢 Zero retention, no training (2) — not listed among the official exceptions, so the default zero-retention policy applies
-  - 🔵 Not trained, but retained per vendor policy (1 — Jev)
-  - 🟠 Vendor trial endpoints that log usage; the docs explicitly say "do not submit confidential data" (2 — Nemotron)
-  - 🔴 **Data collected during the free period may be used to improve the model** (8)
-- One-click model-ID copy plus the **calling endpoint** — 2 of the 13 do *not* use `chat/completions` (Muse Spark uses `/responses`, Jev uses `/systemone`), so copying chat/completions fails
+  - 🟢 Zero retention, no training (3) — not listed among the official exceptions, so the default zero-retention policy applies
+  - 🔵 Not trained, but retained per vendor policy (2 — Beam, Crouton)
+  - 🟠 Vendor trial endpoints that log usage; the docs explicitly say "do not submit confidential data" (3 — Nemotron)
+  - 🔴 **Data collected during the free period may be used to improve the model** (5)
+- One-click model-ID copy plus the **calling endpoint** — 2 of the 13 do *not* use `chat/completions` (Crouton uses `/responses`, Jev uses `/systemone`), so copying chat/completions fails
 - A fixed warning banner at the top; every tier is clickable as a filter; search by model name or model ID
 - A collapsible "official privacy wording" section showing the source text verbatim, each language pulled from its own official doc version
-- Optional live-availability cross-check: with the local proxy running, the page also compares against the official `/zen/v1/models` and flags models the docs still list but the API has retired (e.g. `mimo-v2.5-free`), plus models the API serves that the docs omit entirely (e.g. `muse-spark-1.2-contributor-free`, which therefore has **no privacy terms at all**). With the proxy down, that column is silently skipped.
+- Optional live-availability cross-check: with the local proxy running, the page also compares against the official `/zen/v1/models` and flags models the docs still list but the API has retired, plus models the API serves that the docs omit entirely (which therefore have **no privacy terms at all**). With the proxy down, that column is silently skipped.
 
 ## Usage page (`usage.html`)
 
@@ -84,8 +84,8 @@ No build step — open `index.html` directly, or use the live link above.
 
 Parsed at runtime from the official docs source files:
 
-- Go pricing page: `.../services/www/src/docs/content/console/go.mdx`
-- Zen free models page: `.../services/www/src/docs/content/console/models.mdx` (single file, English only since the 2026-10-13 docs migration)
+- Go pricing page: `.../services/site/src/docs/content/console/go.mdx`
+- Zen free models page: `.../services/site/src/docs/content/console/models.mdx` (single file, English only since the 2026-10-13 docs migration; site directory renamed from `services/www` to `services/site` on 2026-11-09)
 - Mirror: `https://cdn.jsdelivr.net/gh/anomalyco/opencode@dev/...`
 
 `models.mdx` contains the model ID table (`Model | Model ID | Endpoint | AI SDK Package`), the pricing table (`Model | Input | Output | Cached Read | Cached Write`, with **no quota column**), a free-models bullet list, and the privacy section. So `zen.html` cannot reuse `index.html`'s parser, which locates its table by a "monthly limit" header.

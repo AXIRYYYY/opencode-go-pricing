@@ -878,67 +878,70 @@ function fmtCountdown(ms) {
 /*__PARSE_END__*/
 
 const SNAPSHOT_RAW = [
-  ["Grok 4.6 (≤ 200K tokens)", 2.00, 6.00, 0.50, null, 15],
-  ["Grok 4.6 (> 200K tokens)", 4.00, 12.00, 1.00, null, 15],
-  ["GPT 5.6 Luna (≤ 272K tokens)", 0.20, 1.20, 0.02, 0.25, 15],
-  ["GPT 5.6 Luna (> 272K tokens)", 0.40, 1.80, 0.04, 0.50, 15],
+  // 2026-11-09 对照新地址 services/site/.../go.mdx 的 $10 Go 档全量重写：
+  // 新增 Kimi K3.1 Pro / MiniMax M3.1 Flash / Gemini 4 Argon / Hy4 / 三个 Free；
+  // 下线 Grok 4.6 / Kimi K2.6 / MiniMax M2.7 / DeepSeek V4 Flash 系列 / Space Bunny 等。
   ["GLM-5.3-Flash", 0.15, 0.50, 0.03, null, 60],
   ["GLM-5.3", 1.40, 4.40, 0.26, null, 15],
   ["GLM-5.2", 1.40, 4.40, 0.26, null, 60],
-  ["Kimi K3", 3.00, 15.00, 0.30, null, 15],
+  ["Kimi K3.1 Pro", 2.00, 10.00, 0.20, 2.00, 15],
+  ["Kimi K3", 3.00, 15.00, 0.30, 3.00, 15],
   ["Kimi K2.7 Code", 0.95, 4.00, 0.19, null, 60],
-  ["Kimi K2.6", 0.95, 4.00, 0.16, null, 60],
   ["LongCat-2.0", 0.30, 1.20, 0.006, null, 60],
-  // 2026-10-07 官方新增：Go 版不限额度的免费模型（价格列在文档里写「免费/免费/免费」）
-  ["LongCat 2.5 Preview Free", 0, 0, 0, null, [9999, null, "限时"]],
-  ["Step 5 Preview Free", 0, 0, 0, null, [9999, null, "限时"]],
-  // 2026-10-07 官方新增
+  // 2026-11-09 官方改动：原「Step 5 Preview Free」已变成付费模型，价格 $1.00 / $2.70，额度 $15
+  ["Step 5 Preview", 1.00, 2.70, 0.10, null, 15],
+  // Go 档内限时免费的三个模型（额度列官方写 Unlimited）
+  ["Crouton Alpha Free", 0, 0, 0, null, [9999, null, "限时"]],
+  ["Beam Free", 0, 0, 0, null, [9999, null, "限时"]],
+  ["Iceman Contributor Free", 0, 0, 0, null, [9999, null, "限时"]],
   ["MiMo-V2.6-Flash", 0.14, 0.28, 0.0028, null, 60],
   ["MiMo-V2.6-Pro", 0.435, 0.87, 0.003625, null, 15],
-  // 2026-10-07 官方改名：MiMo V2.5 → MiMo-V2.5、MiMo V2.5 Pro → MiMo-V2.5-Pro（价格不变）
   ["MiMo-V2.5", 0.14, 0.28, 0.0028, null, 60],
   ["MiMo-V2.5-Pro", 0.435, 0.87, 0.003625, null, 15],
-  ["MiniMax M3", 0.30, 1.20, 0.06, null, 60],
-  ["MiniMax M2.7", 0.30, 1.20, 0.06, 0.375, 60],
+  ["MiniMax M3.1 Flash", 0.15, 0.60, 0.015, null, 20],
+  // 2026-11-09 官方把 MiniMax M3 按上下文长度拆成两档价格（额度相同，都是 $60）
+  ["MiniMax M3 (≤ 512K tokens)", 0.30, 1.20, 0.06, null, 60],
+  ["MiniMax M3 (> 512K tokens)", 0.60, 2.40, 0.12, null, 60],
   ["Muse Spark 1.3 Contributor", 0.10, 0.20, 0.002, null, 60],
   ["Muse Spark 1.2 Contributor", 0.10, 0.20, 0.002, null, 60],
   ["Qwen3.8 Max", 2.00, 6.00, 0.25, 2.50, 15],
   ["Qwen3.8 Flash", 0.15, 0.47, 0.016, 0.20, 30],
   ["Qwen3.7 Plus (≤ 256K tokens)", 0.40, 1.60, 0.04, 0.50, 60],
   ["Qwen3.7 Plus (> 256K tokens)", 1.20, 4.80, 0.12, 1.50, 60],
-  // DeepSeek V4.1 Flash 的 4x 促销（原 $15 → $60）已于 2026-09-27 到期；
-  // go.mdx 现值就是 **$60**，故快照不再画划线原价、也不再挂「⚡限时」徽章。
-  ["DeepSeek V4.1 Flash (Off-Peak)", 0.15, 0.60, 0.003, null, 60],
-  ["DeepSeek V4.1 Flash (Peak)", 0.30, 1.20, 0.006, null, 60],
+  // 2026-11-09 额度从 $60 提升到 $100（高峰/低峰两档价格不变）
+  ["DeepSeek V4.1 Flash (Off-Peak)", 0.15, 0.60, 0.003, null, 100],
+  ["DeepSeek V4.1 Flash (Peak)", 0.30, 1.20, 0.006, null, 100],
   ["DeepSeek V4 Pro (Off-Peak)", 0.66, 1.98, 0.022, null, 15],
   ["DeepSeek V4 Pro (Peak)", 1.32, 3.96, 0.044, null, 15],
-  ["DeepSeek V4 Flash (Off-Peak)", 0.15, 0.60, 0.003, null, 30],
-  ["DeepSeek V4 Flash (Peak)", 0.30, 1.20, 0.006, null, 30],
-  ["DeepSeek V4 Flash Vision Exp (Off-Peak)", 0.15, 0.60, 0.003, null, 15],
-  ["DeepSeek V4 Flash Vision Exp (Peak)", 0.30, 1.20, 0.006, null, 15],
+  // 2026-11-09 Hy4 正式版与 preview 分开列出（价格相同，额度不同）
+  ["Hy4", 0.834, 2.501, 0.042, null, 60],
   ["Hy4 preview", 0.834, 2.501, 0.042, null, 30],
   ["Hy3", 0.14, 0.58, 0.035, null, 60],
-  // 2026-10-07 官方新增
-  ["Space Bunny", 0.15, 0.60, 0.03, null, 30],
   ["Grok 4.7 (≤ 200K tokens)", 2.00, 6.00, 0.50, null, 15],
   ["Grok 4.7 (> 200K tokens)", 4.00, 12.00, 1.00, null, 15],
   ["GPT 6 Luna (≤ 272K tokens)", 0.10, 0.50, 0.01, 0.125, 15],
   ["GPT 6 Luna (> 272K tokens)", 0.20, 0.75, 0.02, 0.25, 15],
+  ["GPT 5.6 Luna (≤ 272K tokens)", 0.20, 1.20, 0.02, 0.25, 15],
+  ["GPT 5.6 Luna (> 272K tokens)", 0.40, 1.80, 0.04, 0.50, 15],
   ["Claude Haiku 5.5 (≤ 100K tokens)", 0.10, 0.50, 0.01, 0.125, 15],
-  ["Claude Haiku 5.5 (> 100K tokens)", 0.50, 2.50, 0.05, 0.625, 15]
+  ["Claude Haiku 5.5 (> 100K tokens)", 0.50, 2.50, 0.05, 0.625, 15],
+  // Gemini 4 Argon 官方五折促销至 2026-11-30；快照存现价，括号保留原文档的促销标记
+  ["Gemini 4 Argon (50% off)", 2.00, 10.00, 0.10, null, 30]
 ];
 
 const PRIVACY_SNAPSHOT_TABLE = [
+  // 2026-11-09 对照新 go.mdx 的 Privacy 表重写：只保留当前 Go 档在列模型
   ["Grok 4.7", "不使用", "30 天"],
-  ["Grok 4.6", "不使用", "30 天"],
   ["GPT 6 Luna", "不使用", "30 天"],
   ["GPT 5.6 Luna", "不使用", "30 天"],
+  ["Claude Haiku 5.5", "不使用", "30 天"],
+  ["Gemini 4 Argon", "不使用", "0 天"],
   ["GLM-5.3-Flash", "不使用", "0 天"],
   ["GLM-5.3", "不使用", "0 天"],
   ["GLM-5.2", "不使用", "0 天"],
+  ["Kimi K3.1 Pro", "不使用", "0 天"],
   ["Kimi K3", "不使用", "0 天"],
   ["Kimi K2.7 Code", "不使用", "0 天"],
-  ["Kimi K2.6", "不使用", "0 天"],
   ["LongCat-2.0", "不使用", "0 天"],
   ["MiMo-V2.6-Pro", "不使用", "0 天"],
   ["MiMo-V2.6-Flash", "不使用", "0 天"],
@@ -947,38 +950,39 @@ const PRIVACY_SNAPSHOT_TABLE = [
   ["Qwen3.8 Max", "不使用", "0 天"],
   ["Qwen3.8 Flash", "不使用", "0 天"],
   ["Qwen3.7 Plus", "不使用", "0 天"],
+  ["MiniMax M3.1 Flash", "不使用", "0 天"],
   ["MiniMax M3", "不使用", "0 天"],
-  ["MiniMax M2.7", "不使用", "0 天"],
   ["Muse Spark 1.3 Contributor", "是", "非 ZDR"],
   ["Muse Spark 1.2 Contributor", "是", "非 ZDR"],
   ["DeepSeek V4.1 Flash", "不使用", "0 天"],
   ["DeepSeek V4 Pro", "不使用", "0 天"],
-  ["DeepSeek V4 Flash", "不使用", "0 天"],
-  ["DeepSeek V4 Flash Vision Exp", "不使用", "0 天"],
+  ["Hy4", "不使用", "0 天"],
   ["Hy4 preview", "不使用", "0 天"],
   ["Hy3", "不使用", "0 天"],
-  ["Space Bunny", "不使用", "0 天"],
-  ["LongCat 2.5 Preview Free", "不使用", "0 天"],
-  ["Step 5 Preview Free", "不使用", "0 天"],
-  ["Claude Haiku 5.5", "不使用", "30 天"]
+  ["Step 5 Preview", "不使用", "0 天"],
+  ["Crouton Alpha Free", "不使用", "30 天"],
+  ["Beam Free", "不使用", "30 天"],
+  ["Iceman Contributor Free", "是", "非 ZDR"]
 ];
 const PRIVACY_NOTES_SNAPSHOT = [
-  { model: "Grok 4.7/4.6", text: "ZDR 会禁用依赖所存储数据的重要 API 功能，包括有状态的 Responses API、Files and Collections 和 Batch API。" },
+  { model: "Grok 4.7", text: "ZDR 会禁用依赖所存储数据的重要 API 功能，包括有状态的 Responses API、Files and Collections 和 Batch API。" },
   { model: "GPT 6 Luna / GPT 5.6 Luna", text: "所有 API 功能的使用都会生成滥用监控日志，并最多保留 30 天。" },
   { model: "Muse Spark 1.3 Contributor", text: "以允许使用你的提示词和补全结果训练未来的 Meta 模型为交换，token 价格可获得大幅折扣。仅在 Meta 的地理使用政策允许的地区提供。" },
   { model: "Muse Spark 1.2 Contributor", text: "以允许使用你的提示词和补全结果训练未来的 Meta 模型为交换，token 价格可获得大幅折扣。仅在 Meta 的地理使用政策允许的地区提供。" },
+  { model: "Iceman Contributor Free", text: "限时免费，条件是允许使用你的提示词和补全结果来改进模型。" },
   { model: "Claude Haiku 5.5", text: "请求按 Anthropic 数据政策保留 30 天。" },
-  // 官方现行：ZDR 协议每月续签，有效期至 2026 年 10 月 31 日（快照 2026-09-21 时写的是 9 月 30 日，已过期）
-  { model: "DeepSeek", text: "ZDR 协议每月续签。当前协议有效期至 2026 年 10 月 31 日。" }
+  // 2026-11-09 官方续签到 2026-11-30（旧快照写的 10-31 已过期）
+  { model: "DeepSeek", text: "ZDR 协议每月续签。当前协议有效期至 2026 年 11 月 30 日。" }
 ];
 const PRIVACY_NOTES_SNAPSHOT_EN = [
-  { model: "Grok 4.7/4.6", text: "ZDR disables important API features that depend on stored data, including the stateful Responses API, Files and Collections, and the Batch API." },
+  { model: "Grok 4.7", text: "ZDR disables important API features that depend on stored data, including the stateful Responses API, Files and Collections, and the Batch API." },
   { model: "GPT 6 Luna / GPT 5.6 Luna", text: "Abuse monitoring logs are generated for all API feature usage and retained for up to 30 days." },
   { model: "Muse Spark 1.3 Contributor", text: "Heavily discounted token pricing in exchange for permission to use your prompts and completions to train future Meta models. Availability is limited to regions permitted by Meta's Geographic Use Policy." },
   { model: "Muse Spark 1.2 Contributor", text: "Heavily discounted token pricing in exchange for permission to use your prompts and completions to train future Meta models. Availability is limited to regions permitted by Meta's Geographic Use Policy." },
+  { model: "Iceman Contributor Free", text: "Free for a limited time in exchange for permission to use your prompts and completions to improve the model." },
   { model: "Claude Haiku 5.5", text: "Requests are retained for 30 days in accordance with Anthropic's Data Policies." },
-  // Official current term: ZDR agreement valid through October 31, 2026 (the snapshot's September 30 date has expired)
-  { model: "DeepSeek", text: "ZDR agreement is renewed monthly. The current agreement is valid through October 31, 2026." }
+  // Official current term: ZDR agreement valid through November 30, 2026
+  { model: "DeepSeek", text: "ZDR agreement is renewed monthly. The current agreement is valid through November 30, 2026." }
 ];
 
 const MODEL_ID_SNAPSHOT = {
@@ -991,10 +995,13 @@ const MODEL_ID_SNAPSHOT = {
   "GLM-5.3": "glm-5.3",
   "GLM-5.2": "glm-5.2",
   "Kimi K3": "kimi-k3",
+  "Kimi K3.1 Pro": "kimi-k3.1-pro",
   "Kimi K2.7 Code": "kimi-k2.7-code",
   "Kimi K2.6": "kimi-k2.6",
   "LongCat-2.0": "longcat-2.0",
   "LongCat 2.5 Preview Free": "longcat-2.5-preview-free",
+  // 2026-11-09 Step 5 转为付费模型，ID 同步改为无后缀
+  "Step 5 Preview": "step-5-preview",
   "Step 5 Preview Free": "step-5-preview-free",
   "DeepSeek V4.1 Flash": "deepseek-v4.1-flash",
   "DeepSeek V4 Pro": "deepseek-v4-pro",
@@ -1006,22 +1013,28 @@ const MODEL_ID_SNAPSHOT = {
   "MiMo-V2.5-Pro": "mimo-v2.5-pro",
   "MiniMax M3": "minimax-m3",
   "MiniMax M2.7": "minimax-m2.7",
+  "MiniMax M3.1 Flash": "minimax-m3.1-flash",
   "Muse Spark 1.3 Contributor": "muse-spark-1.3-contributor",
   "Muse Spark 1.2 Contributor": "muse-spark-1.2-contributor",
   "Qwen3.8 Max": "qwen3.8-max",
   "Qwen3.8 Flash": "qwen3.8-flash",
   "Qwen3.7 Plus": "qwen3.7-plus",
+  "Hy4": "hy4",
   "Hy4 preview": "hy4-preview",
   "Hy3": "hy3",
   "Space Bunny": "space-bunny",
-  "Claude Haiku 5.5": "claude-haiku-5-5"
+  "Claude Haiku 5.5": "claude-haiku-5-5",
+  "Gemini 4 Argon": "gemini-4-argon",
+  "Crouton Alpha Free": "crouton-alpha-free",
+  "Beam Free": "beam-free",
+  "Iceman Contributor Free": "iceman-contributor-free"
 };
 
 const SNAPSHOT = {
   // 快照日期=最后一次对照官方文档确认无其他改价的日期
-  // （2026-10-07 已对照 go.mdx：新增 8 行 / 下线 5 行 / 改名 2 处 / 留存行价格无变动）
-  // 2026-10-13 对照新地址 go.mdx 全量校准
-  date: "2026-10-13",
+  // 2026-11-09 对照新地址 services/site/.../go.mdx 的 $10 Go 档全量校准
+  // （本次不处理文档新加的 Go Plus $40 / Go Teams $20 两档，页面仍按 $10 折算）
+  date: "2026-11-09",
   rows: (() => {
     const rows = SNAPSHOT_RAW.map(r => {
       const row = normalizeRow(r);
@@ -1038,8 +1051,9 @@ const SNAPSHOT = {
 
 // 2026-10-13 官方文档从 packages/web/.../zh-cn/go.mdx 迁移到 services/www/src/docs/content/console/go.mdx，
 // 渲染页同步迁到 /v2/docs/console/go/（旧地址 302 跳转至此）
-const MDX_URL = "https://raw.githubusercontent.com/anomalyco/opencode/dev/services/www/src/docs/content/console/go.mdx";
-const MDX_MIRROR_URL = "https://cdn.jsdelivr.net/gh/anomalyco/opencode@dev/services/www/src/docs/content/console/go.mdx";
+// 2026-11-09 官方再次把站点目录 services/www 改名为 services/site，旧地址已返回 404，这里跟着改。
+const MDX_URL = "https://raw.githubusercontent.com/anomalyco/opencode/dev/services/site/src/docs/content/console/go.mdx";
+const MDX_MIRROR_URL = "https://cdn.jsdelivr.net/gh/anomalyco/opencode@dev/services/site/src/docs/content/console/go.mdx";
 const SOURCES = [
   { key: "github", type: "mdx", url: MDX_URL },
   { key: "jsdelivr", type: "mdx", url: MDX_MIRROR_URL },
@@ -1048,8 +1062,8 @@ const SOURCES = [
   { key: "ghfast", type: "mdx", url: "https://ghfast.top/" + MDX_URL }
 ];
 
-// v4：2026-10-07 快照整体翻新（新增/下线/改名），丢弃旧缓存让老用户重新解析一次官方文档
-const LS_CACHE = "opengo-pricing-v4";
+// v5：2026-11-09 文档第二次迁移 + Go 档名单大改，丢弃 v4 旧缓存让老用户直接看到新快照
+const LS_CACHE = "opengo-pricing-v5";
 const LS_THEME = "opengo-theme";
 const LS_RATIO = "opengo-ratio-mode";
 const LS_CUR = "opengo-currency";
@@ -1833,7 +1847,7 @@ function renderRateNote() {
 
 function saveCache(rows, notes, when) {
   try {
-    localStorage.setItem(LS_CACHE, JSON.stringify({ v: 4, fetchedAt: when, rows, notes }));
+    localStorage.setItem(LS_CACHE, JSON.stringify({ v: 5, fetchedAt: when, rows, notes }));
   } catch (e) { /* storage unavailable */ }
 }
 
@@ -1842,7 +1856,7 @@ function loadCache() {
     const raw = localStorage.getItem(LS_CACHE);
     if (!raw) return null;
     const data = JSON.parse(raw);
-    if (!data || data.v !== 4 || !Array.isArray(data.rows)) return null;
+    if (!data || data.v !== 5 || !Array.isArray(data.rows)) return null;
     return { fetchedAt: data.fetchedAt, rows: data.rows, notes: data.notes || null };
   } catch (e) { return null; }
 }

@@ -602,8 +602,13 @@ function classifyZenPrivacy(key, privacy) {
   if (text) {
     if (/collect(ed)?\s+data\s+may\s+be\s+used\s+to\s+improve/i.test(text)
       || /收集的数据可能会被用于改进/.test(text)) return "train";
+    // 2026-11-09 新文档句式：Iceman Free「collected data is retained and used to improve the model」
+    if (/collect(ed)?\s+data\s+is\s+retained\s+and\s+used\s+to\s+improve/i.test(text)) return "train";
     if (/train\s+future\s+.*models/i.test(text)
       || /训练未来.*模型/.test(text)) return "train";
+    // 2026-11-09 新文档句式：Inkling 2 Small Free「may be used ... and for model training」
+    // 注意不能只匹配 "model training"：Crouton 的原文是「is not used for model training」，那是明确不训练
+    if (/may\s+be\s+used[\s\S]*model\s+training/i.test(text)) return "train";
     if (/trial\s+use\s+only/i.test(text)
       || /仅供试用/.test(text)
       || /NVIDIA/i.test(text)) return "trial";
@@ -615,41 +620,44 @@ function classifyZenPrivacy(key, privacy) {
 /*__ZEN_PARSE_END__*/
 
 /* ==================================================================
- * 内置快照（2026-10-07 对照官方 zen.mdx 逐条确认）
+ * 内置快照（2026-11-09 对照新地址 services/site/.../models.mdx 逐条确认）
  * [模型名, 模型 ID, 端点, 隐私档, 官方免费说明]
  * ================================================================== */
-const ZEN_SNAPSHOT_DATE = "2026-10-07";
+const ZEN_SNAPSHOT_DATE = "2026-11-09";
 const ZEN_SNAPSHOT_ROWS = [
-  ["Big Pickle", "big-pickle", "/chat/completions", "train", "是一个隐身模型，目前在 OpenCode 上限时免费提供。团队正在利用这段时间收集反馈并改进模型。"],
-  ["Space Bunny Free", "space-bunny-free", "/chat/completions", "zero", "是一个隐身模型，目前在 OpenCode 上限时免费提供。其提供商遵循零保留策略，不会将你的数据用于模型训练。"],
-  ["LongCat 2.5 Preview Free", "longcat-2.5-preview-free", "/chat/completions", "zero", "目前在 OpenCode 上限时免费提供。其提供商遵循零保留策略，不会将你的数据用于模型训练。"],
-  ["Exo Free", "exo-free", "/chat/completions", "train", "目前在 OpenCode 上限时免费提供。团队正在利用这段时间收集反馈并改进模型。"],
-  ["Fledge Alpha Free", "fledge-alpha-free", "/chat/completions", "train", "目前在 OpenCode 上限时免费提供。团队正在利用这段时间收集反馈并改进模型。"],
-  ["MiMo-V2.6-Flash Free", "mimo-v2.6-flash-free", "/chat/completions", "train", "目前在 OpenCode 上限时免费提供。团队正在利用这段时间收集反馈并改进模型。"],
-  ["MiMo-V2.5 Free", "mimo-v2.5-free", "/chat/completions", "train", "目前在 OpenCode 上限时免费提供。团队正在利用这段时间收集反馈并改进模型。"],
-  ["Ling 3.1 Flash Free", "ling-3.1-flash-free", "/chat/completions", "train", "目前在 OpenCode 上限时免费提供。团队正在利用这段时间收集反馈并改进模型。"],
-  ["Ling 3.0 Flash Fin Free", "ling-3.0-flash-fin-free", "/chat/completions", "train", "目前在 OpenCode 上限时免费提供。团队正在利用这段时间收集反馈并改进模型。"],
-  ["Nemotron 3 Ultra Free", "nemotron-3-ultra-free", "/chat/completions", "trial", "目前在 OpenCode 上限时免费提供。团队正在利用这段时间收集反馈并改进模型。"],
-  ["Nemotron 3.5 Lightning Free", "nemotron-3.5-lightning-free", "/chat/completions", "trial", "目前在 OpenCode 上限时免费提供。团队正在利用这段时间收集反馈并改进模型。"],
-  ["Muse Spark 1.3 Contributor Free", "muse-spark-1.3-contributor-free", "/responses", "train", "目前在 OpenCode 上限时免费提供。团队正在利用这段时间收集反馈并改进模型。"],
-  ["Jev 1.13 Free", "jev-1.13-free", "/systemone", "vendor", "目前在 OpenCode 上限时提供。"]
+  ["GLM-5.3-Flash Free", "glm-5.3-flash-free", "/chat/completions", "zero", "限时免费。其提供商遵循零保留策略，不会将你的数据用于模型训练。"],
+  ["DeepSeek V4.1 Flash Free", "deepseek-v4.1-flash-free", "/chat/completions", "zero", "限时免费。其提供商遵循零保留策略，不会将你的数据用于模型训练。"],
+  ["Beam Free", "beam-free", "/chat/completions", "vendor", "限时免费。其提供商不会将你的数据用于模型训练，出于安全原因保留 30 天。部分地区不可用。"],
+  ["Crouton Alpha Free", "crouton-alpha-free", "/responses", "vendor", "是一个隐身模型，限时免费。团队正在利用这段时间收集反馈并改进模型。免费期内数据保留 30 天、不用于训练。部分地区不可用。"],
+  ["Nemotron 3 Ultra Free", "nemotron-3-ultra-free", "/chat/completions", "trial", "NVIDIA 免费试用端点，限时提供。仅供试用，请勿提交个人或机密数据。"],
+  ["Nemotron 3.5 Lightning Free", "nemotron-3.5-lightning-free", "/chat/completions", "trial", "NVIDIA 免费试用端点，限时提供。仅供试用，请勿提交个人或机密数据。"],
+  ["Nemotron 3.5 Super VL Free", "nemotron-3.5-super-vl-free", "/chat/completions", "trial", "NVIDIA 免费试用端点，限时提供。仅供试用，请勿提交个人或机密数据。"],
+  ["Big Pickle", "big-pickle", "/chat/completions", "train", "是一个隐身模型，限时免费。团队正在利用这段时间收集反馈并改进模型。"],
+  ["Iceman Free", "iceman-free", "/chat/completions", "train", "是一个隐身模型，限时免费。免费期内收集的数据会被保留并用于改进模型。"],
+  ["Inkling 2 Small Free", "inkling-2-small-free", "/chat/completions", "train", "限时免费。其提供商会留存你的数据，并可能用于监测模型表现和模型训练。部分地区不可用。"],
+  ["Flint 40B Free", "flint-40b-free", "/chat/completions", "train", "限时免费。团队正在利用这段时间收集反馈并改进模型，数据保留 30 天。"],
+  ["MiMo-V2.6-Flash Free", "mimo-v2.6-flash-free", "/chat/completions", "train", "限时免费。团队正在利用这段时间收集反馈并改进模型。"],
+  ["Jev 1.13 Free", "jev-1.13-free", "/systemone", "zero", "限时提供。官方隐私章节没有为它单独列出例外条款，因此按默认的零留存、不训练政策处理。"]
 ];
 
 /* 隐私条款原文（官方措辞快照），按模型归一化键存 */
 const ZEN_SNAPSHOT_RULES = [
-  ["bigpickle", "在免费期间，收集的数据可能会被用于改进模型。"],
-  ["exofree", "在免费期间，收集的数据可能会被用于改进模型。"],
-  ["fledgealphafree", "在免费期间，收集的数据可能会被用于改进模型。"],
-  ["mimov26flashfree", "在免费期间，收集的数据可能会被用于改进模型。"],
-  ["mimov25free", "在免费期间，收集的数据可能会被用于改进模型。"],
-  ["ling31flashfree", "在免费期间，收集的数据可能会被用于改进模型。"],
-  ["ling30flashfinfree", "在免费期间，收集的数据可能会被用于改进模型。"],
+  ["glm53flashfree", "GLM-5.3-Flash Free 限时免费。其提供商遵循零保留策略，不会将你的数据用于模型训练。"],
+  ["deepseekv41flashfree", "DeepSeek V4.1 Flash Free 限时免费。其提供商遵循零保留策略，不会将你的数据用于模型训练。"],
+  ["beamfree", "Beam Free：提示词和其他输入不会用于训练，出于安全原因保留 30 天。"],
+  ["croutonalphafree", "Crouton Alpha Free：免费期内收集的数据保留 30 天，且不用于模型训练。"],
   ["nemotron3ultrafree", "仅供试用 — 请勿提交个人或机密数据。出于安全目的以及为改进 NVIDIA 产品和服务，系统会记录你的使用情况。出于改进目的而记录的会话数据不会与你的身份或任何持久标识符相关联。"],
   ["nemotron35lightningfree", "仅供试用 — 请勿提交个人或机密数据。出于安全目的以及为改进 NVIDIA 产品和服务，系统会记录你的使用情况。出于改进目的而记录的会话数据不会与你的身份或任何持久标识符相关联。"],
-  ["musespark13contributorfree", "以允许使用你的提示词和补全内容训练未来的 Meta 模型为条件，享受大幅折扣的 token 价格。"]
+  ["nemotron35supervlfree", "仅供试用 — 请勿提交个人或机密数据。出于安全目的以及为改进 NVIDIA 产品和服务，系统会记录你的使用情况。出于改进目的而记录的会话数据不会与你的身份或任何持久标识符相关联。"],
+  ["bigpickle", "在免费期间，收集的数据可能会被用于改进模型。"],
+  ["icemanfree", "在免费期间，收集的数据会被保留并用于改进模型。"],
+  ["inkling2smallfree", "在免费期间，收集的数据会被保留，并可能用于监测模型的实际表现和模型训练。"],
+  ["flint40bfree", "在免费期间，收集的数据可能会被用于改进模型，数据保留 30 天。"],
+  ["mimov26flashfree", "在免费期间，收集的数据可能会被用于改进模型。"]
 ];
 const ZEN_SNAPSHOT_VENDORS = [
-  ["jev", "提示词和其他输入不会用于训练。数据会根据 TypeSafe AI 的隐私政策保留。"]
+  // 2026-11-09：新 models.mdx 隐私章节已不再单列 Jev / TypeSafe 条款，故清空；
+  // 保留这个空数组是为了让 snapshotRules() 的读取逻辑不用改。
 ];
 
 const ENDPOINT_PREFIX = "https://opencode.ai/zen/v1";
@@ -667,9 +675,10 @@ function isAltEndpoint(ep) {
  * 数据源：与 index.html 同一条 5 级镜像链，只换路径
  * 2026-10-13 官方文档迁移：免费模型表从 packages/web/.../zen.mdx 搬到
  * services/www/src/docs/content/console/models.mdx（单文件、全英文，无中英之分）
+ * 2026-11-09 官方站点目录 services/www 改名为 services/site，旧地址已 404
  * ---------------------------------------------------------------- */
-const ZEN_DOC_BASE = "https://raw.githubusercontent.com/anomalyco/opencode/dev/services/www/src/docs/content/console/models.mdx";
-const ZEN_MIRROR_BASE = "https://cdn.jsdelivr.net/gh/anomalyco/opencode@dev/services/www/src/docs/content/console/models.mdx";
+const ZEN_DOC_BASE = "https://raw.githubusercontent.com/anomalyco/opencode/dev/services/site/src/docs/content/console/models.mdx";
+const ZEN_MIRROR_BASE = "https://cdn.jsdelivr.net/gh/anomalyco/opencode@dev/services/site/src/docs/content/console/models.mdx";
 const ZEN_MIRROR_KEYS = ["github", "jsdelivr", "ghproxy", "ghproxy2", "ghfast"];
 /* 与 index.html 同一条 5 级镜像链：单文件直取，不再按语言拼接路径 */
 function zenSourceUrls() {
@@ -682,7 +691,7 @@ function zenSourceUrls() {
   ];
 }
 
-const LS_ZEN_CACHE = "opencode-zen-free-v1";
+const LS_ZEN_CACHE = "opencode-zen-free-v2";
 const LS_THEME = "opengo-theme";
 const LS_LANG = "opengo-lang";
 const PROXY_URL = "http://127.0.0.1:8788";
@@ -901,7 +910,7 @@ function fetchText(url, ms) {
 function saveZenCache(when) {
   try {
     localStorage.setItem(LS_ZEN_CACHE, JSON.stringify({
-      v: 1, fetchedAt: when, lang: state.lang,
+      v: 2, fetchedAt: when, lang: state.lang,
       rows: state.rows,
       rules: state.rules
     }));
@@ -913,7 +922,7 @@ function loadZenCache() {
     const raw = localStorage.getItem(LS_ZEN_CACHE);
     if (!raw) return null;
     const data = JSON.parse(raw);
-    if (!data || data.v !== 1 || !Array.isArray(data.rows)) return null;
+    if (!data || data.v !== 2 || !Array.isArray(data.rows)) return null;
     if (!validateZenRows(data.rows)) return null;
     if (data.lang !== state.lang) return null;   // 语言不同就别复用，重新抓
     return data;

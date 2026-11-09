@@ -32,14 +32,14 @@
 独立页面，**只列当前限时的免费模型**，重点是隐私情况：
 
 - **免费 ≠ 隐私安全**：按官方隐私章节把 13 个免费模型分成四档，**零留存在最前**排序
-  - 🟢 零留存不训练（2 个）——未被列入官方例外清单，适用默认零保留政策
-  - 🔵 不训练但按厂商政策留存（1 个，Jev）
-  - 🟠 厂商试用端点，会记录使用、官方明确「请勿提交机密数据」（2 个 Nemotron）
-  - 🔴 **免费期内收集的数据可能被用于训练改进**（8 个）
-- 模型 ID 一键复制 + **调用端点**（13 个里有 2 个不走 `chat/completions`：Muse Spark 走 `/responses`、Jev 走 `/systemone`，照抄 chat 会失败）
+  - 🟢 零留存不训练（3 个）——未被列入官方例外清单，适用默认零保留政策
+  - 🔵 不训练但按厂商政策留存（2 个，Beam / Crouton）
+  - 🟠 厂商试用端点，会记录使用、官方明确「请勿提交机密数据」（3 个 Nemotron）
+  - 🔴 **免费期内收集的数据可能被用于训练改进**（5 个）
+- 模型 ID 一键复制 + **调用端点**（13 个里有 2 个不走 `chat/completions`：Crouton 走 `/responses`、Jev 走 `/systemone`，照抄 chat 会失败）
 - 顶部固定警示条；每档都可点击筛选，也可搜索模型名 / 模型 ID
 - 「隐私条款原文」折叠区展示官方原话，中英双语各自取对应语言版本的官方文档
-- 可选的实时可用性校验：本地代理运行时，额外拿官方 `/zen/v1/models` 对比，标出「文档在列但接口已不再提供」（如 `mimo-v2.5-free`）与「接口有、文档未列、因此没有任何隐私条款」（如 `muse-spark-1.2-contributor-free`）；代理没起就静默跳过这一列
+- 可选的实时可用性校验：本地代理运行时，额外拿官方 `/zen/v1/models` 对比，标出「文档在列但接口已不再提供」与「接口有、文档未列、因此没有任何隐私条款」两类情况；代理没起就静默跳过这一列
 
 ## 用量页（`usage.html`）
 
@@ -84,8 +84,8 @@ Go / DeepSeek 两个主卡片都支持浏览器直连：Go 用量接口现在会
 
 页面运行时实时解析官方文档源文件：
 
-- Go 价格页：`.../services/www/src/docs/content/console/go.mdx`
-- Zen 免费模型页：`.../services/www/src/docs/content/console/models.mdx`（2026-10-13 文档迁移后单文件、全英文，无中英之分）
+- Go 价格页：`.../services/site/src/docs/content/console/go.mdx`
+- Zen 免费模型页：`.../services/site/src/docs/content/console/models.mdx`（2026-10-13 文档迁移后单文件、全英文，无中英之分；2026-11-09 官方又把站点目录 `services/www` 改名为 `services/site`）
 - 镜像：`https://cdn.jsdelivr.net/gh/anomalyco/opencode@dev/...`
 
 `models.mdx` 包含模型 ID 表（`模型 | 模型 ID | 端点 | AI SDK 包`）、定价表（`模型 | 输入 | 输出 | 缓存读取 | 缓存写入`，**没有额度列**）、免费模型列表与隐私章节。因此 `zen.html` 的解析器不能复用 `index.html` 那个靠「每月限制」定位表头的函数。
