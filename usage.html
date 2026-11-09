@@ -283,9 +283,14 @@
     </div>
     <div class="hactions">
       <span class="status" id="peak-pill" title="DeepSeek 计费时段"><span class="dot" id="peak-dot"></span><span id="peak-text">…</span><span class="muted" id="peak-next"></span></span>
-      <a class="btn nav" href="index.html" title="返回价格表">
-        <svg viewBox="0 0 24 24"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
-        价格表
+      <!-- 导航入口：与其他页面保持一致，用量页同时提供 Go 价格页和 Zen 页两个跳转 -->
+      <a class="btn nav" href="index.html" title="Go 价格速查">
+        <svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15v3M12 10v8M17 6v12"/></svg>
+        Go 价格
+      </a>
+      <a class="btn nav" href="zen.html" title="Zen 免费模型与隐私">
+        <svg viewBox="0 0 24 24"><path d="M12 3l2.6 5.6 6.1.8-4.5 4.2 1.2 6-5.4-3-5.4 3 1.2-6L3.3 9.4l6.1-.8z"/></svg>
+        Zen 免费
       </a>
       <button class="btn primary" id="refresh">
         <svg viewBox="0 0 24 24"><path d="M21.5 2v6h-6"/><path d="M2.5 22v-6h6"/><path d="M2 12a10 10 0 0 1 17.2-7L21.5 8"/><path d="M22 12a10 10 0 0 1-17.2 7L2.5 16"/></svg>
